@@ -5,14 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Login</title>
 <style>
-body, html {margin:0;padding:0;height:100vh;font-family:'Poppins',sans-serif;background:black;overflow:hidden;}
-.login-container {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:40px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.3);text-align:center;z-index:10;transition:opacity 0.5s;}
-.login-container h1{margin-bottom:24px;color:#333;}
-input{width:100%;padding:12px;margin:12px 0;border-radius:8px;border:1px solid #ccc;font-size:16px;}
-button{width:100%;padding:12px;border:none;border-radius:10px;background:#4CAF50;color:white;cursor:pointer;font-size:16px;margin-top:10px;}
-button:hover{background:#45a049;}
-#error{color:red;margin-top:10px;}
-#warpCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;display:none;}
+body, html {
+  margin:0; padding:0; overflow:hidden; font-family:'Poppins', sans-serif; height:100vh; background:black;
+}
+.login-container {
+  position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  background: rgba(255,255,255,0.95); padding:40px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  text-align:center; z-index:10; transition: opacity 0.5s ease;
+}
+.login-container h1 { margin-bottom:24px; color:#333; }
+input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
+button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
+button:hover { background:#45a049; }
+#error { color:red; margin-top:10px; }
+#warpCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; display:none; }
 </style>
 </head>
 <body>
@@ -21,6 +27,7 @@ button:hover{background:#45a049;}
 
 <div class="login-container" id="loginBox">
   <h1>Class Login</h1>
+  <input type="email" id="email" placeholder="Email">
   <button id="loginBtn">Login with Google</button>
   <div id="error"></div>
 </div>
@@ -48,7 +55,6 @@ const provider = new GoogleAuthProvider();
 // Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
-
 function warpTransition(targetURL) {
   warpCanvas.style.display = "block";
   let w = warpCanvas.width = window.innerWidth;
@@ -67,14 +73,9 @@ function warpTransition(targetURL) {
       let px = s.x*k+w/2;
       let py = s.y*k+h/2;
       const size = s.size*k/5;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = size;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
-      ctx.stroke();
-      ctx.fillStyle=s.color;
-      ctx.fillRect(px, py, size, size);
+      ctx.strokeStyle = s.color; ctx.lineWidth = size;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - s.x*0.1, py - s.y*0.1); ctx.stroke();
+      ctx.fillStyle=s.color; ctx.fillRect(px, py, size, size);
     }
     requestAnimationFrame(draw);
   }
@@ -83,7 +84,7 @@ function warpTransition(targetURL) {
   setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
-// 🔹 Login
+// 🔹 Login function
 async function login(){
   const errorDiv = document.getElementById("error");
   errorDiv.textContent="";
@@ -91,28 +92,28 @@ async function login(){
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Đọc teacher/student bằng displayName
+    // Document IDs = displayName
     const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
     const studentDoc = await getDoc(doc(db,"students",user.displayName));
 
     let role = "student";
 
-    // Lần đầu đăng nhập, hỏi mật mã giáo viên
+    // Lần đầu login hỏi mã
     if(!teacherDoc.exists() && !studentDoc.exists()){
-      let codeInput = prompt("Nhập mã giáo viên nếu là giáo viên, để trống nếu học sinh:");
-      if(codeInput==="TOF7A1") role="teacher";
+      let codeInput = prompt("Hãy nhập mã giáo viên, bỏ trống nếu là học sinh:");
+      if(codeInput==="GV123") role="teacher";
     } else if(teacherDoc.exists()){
       role="teacher";
     }
 
     // Tạo document nếu chưa có
-    if(role==="teacher" && !teacherDoc.exists()){
+    if(!teacherDoc.exists() && role==="teacher"){
       await setDoc(doc(db,"teachers",user.displayName), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(role==="student" && !studentDoc.exists()){
+    } else if(!studentDoc.exists()){
       await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // Warp effect + redirect
+    // Fade form + warp
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
@@ -121,5 +122,6 @@ async function login(){
 
 document.getElementById("loginBtn").addEventListener("click", login);
 </script>
+
 </body>
 </html>
