@@ -95,22 +95,24 @@ async function login() {
     const studentDoc = await getDoc(doc(db, "students", user.uid));
 
     if (teacherDoc.exists()) {
-      // Đã có teacher → redirect
+      // Redirect teacher
       window.location.href = "https://teachers-x4og.onrender.com/";
       return;
     } else if (studentDoc.exists()) {
-      // Đã có student → redirect
+      // Redirect student
       window.location.href = "https://students-6fym.onrender.com/";
       return;
     }
 
-    // 🔹 Nếu chưa có document → nhập mã giáo viên
+    // 🔹 Nếu chưa có document → hỏi mã nếu email là giáo viên
     let codeInput = "";
     if (teacherEmails.includes(user.email)) {
-      codeInput = prompt("Nhập mã giáo viên (nếu có):");
+      codeInput = prompt("Nhập mã giáo viên:");
+      if (codeInput === null) codeInput = ""; // Nếu user cancel
     }
 
     if (teacherEmails.includes(user.email) && codeInput === "GV123") {
+      // Tạo document teacher
       await setDoc(doc(db, "teachers", user.uid), {
         name: user.displayName,
         email: user.email,
@@ -119,6 +121,7 @@ async function login() {
       });
       window.location.href = "https://teachers-x4og.onrender.com/";
     } else {
+      // Tạo document student
       await setDoc(doc(db, "students", user.uid), {
         name: user.displayName,
         email: user.email,
@@ -134,7 +137,6 @@ async function login() {
   }
 }
 
-// Gán event listener
 document.getElementById("loginBtn").addEventListener("click", login);
 
 </script>
