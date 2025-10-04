@@ -1,141 +1,149 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Class Web</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login / Register</title>
 <style>
-  body { font-family: sans-serif; background: #111; color: #fff; text-align:center; padding:20px; }
-  #login, #teacherPanel, #studentPanel { display:none; }
-  input { padding:5px; margin:5px; }
-  button { padding:5px 10px; margin:5px; cursor:pointer; }
-  #tunnel { position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:1000; display:none; }
-  #tunnel div { width:10px; height:10px; border-radius:50%; background:cyan; position:absolute; animation:tunnelAnim 1s linear infinite; }
-  @keyframes tunnelAnim { from {transform:scale(0) translateZ(0);} to {transform:scale(20) translateZ(500px);} }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #login {
+    background: #1a1a1a;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px #00f;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 300px;
+    z-index: 2;
+    position: relative;
+  }
+  input, select, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+  }
+  input, select {
+    width: 100%;
+  }
+  button {
+    background: #00f;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  button:hover {
+    background: #0077ff;
+  }
+  #errorMsg {
+    color: #ff4444;
+    font-size: 14px;
+  }
+  #tunnel {
+    position: absolute;
+    top:0; left:0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle, #fff 0%, #000 60%);
+    animation: tunnelAnim 1s forwards;
+    display: none;
+    z-index: 1;
+  }
+  @keyframes tunnelAnim {
+    0% { transform: scale(0.1); opacity: 1; }
+    100% { transform: scale(10); opacity: 0; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Class Web</h1>
-
 <div id="login">
-  <h2>Login</h2>
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Password"><br>
+  <h2>Login / Register</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
   <select id="role">
-    <option value="student">Student</option>
     <option value="teacher">Teacher</option>
-  </select><br>
+    <option value="student">Student</option>
+  </select>
   <button onclick="loginUser()">Login / Register</button>
-</div>
-
-<div id="teacherPanel">
-  <h2>Teacher Panel</h2>
-  <input type="text" id="taskTitle" placeholder="Task Title">
-  <input type="text" id="taskDesc" placeholder="Task Description">
-  <button onclick="addTask()">Add Task</button>
-  <h3>Tasks:</h3>
-  <ul id="taskList"></ul>
-</div>
-
-<div id="studentPanel">
-  <h2>Student Panel</h2>
-  <h3>Tasks:</h3>
-  <ul id="taskListStudent"></ul>
+  <div id="errorMsg"></div>
 </div>
 
 <div id="tunnel"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-  authDomain: "classweb-11389.firebaseapp.com",
-  projectId: "classweb-11389",
-  storageBucket: "classweb-11389.appspot.com",
-  messagingSenderId: "91367336185",
-  appId: "1:91367336185:web:30a78cfe10e459b0605a28"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+    authDomain: "classweb-11389.firebaseapp.com",
+    projectId: "classweb-11389",
+    storageBucket: "classweb-11389.firebasestorage.app",
+    messagingSenderId: "91367336185",
+    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+    measurementId: "G-7123YZQKWV"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-document.getElementById('login').style.display = 'block';
+  async function loginUser() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+    const errorMsg = document.getElementById('errorMsg');
+    errorMsg.textContent = '';
 
-async function loginUser() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const role = document.getElementById('role').value;
+    try {
+      // Thử login
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } catch {
+        // Nếu login fail thì đăng ký
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, role + 's', userCredential.user.uid), {
+          email: email,
+          role: role,
+          name: email.split('@')[0]
+        });
+      }
 
-  let user;
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    user = userCredential.user;
-  } catch (e) {
-    // Nếu không tồn tại thì tạo
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    user = userCredential.user;
-  }
+      // Hiệu ứng tunnel
+      const tunnel = document.getElementById('tunnel');
+      tunnel.style.display = 'block';
+      tunnel.style.animation = 'tunnelAnim 1s forwards';
+      setTimeout(() => {
+        if (role === 'teacher') {
+          alert('Redirecting to teacher dashboard...');
+          // window.location.href = 'teacher.html';
+        } else {
+          alert('Redirecting to student dashboard...');
+          // window.location.href = 'student.html';
+        }
+      }, 1000);
 
-  // Tạo doc lần đầu
-  const col = role === "teacher" ? "teachers" : "students";
-  const userDocRef = doc(db, col, user.uid);
-  const userDoc = await getDoc(userDocRef);
-  if (!userDoc.exists()) {
-    await setDoc(userDocRef, { name: email.split('@')[0], role, createdAt: new Date() });
-  }
-
-  // Hiệu ứng tunnel trước khi chuyển panel
-  showTunnel(role);
-}
-
-function showTunnel(role) {
-  const tunnel = document.getElementById('tunnel');
-  tunnel.style.display = 'block';
-  for(let i=0;i<50;i++){
-    const dot = document.createElement('div');
-    dot.style.top = Math.random()*100 + '%';
-    dot.style.left = Math.random()*100 + '%';
-    dot.style.animationDelay = Math.random()+'s';
-    tunnel.appendChild(dot);
-  }
-  setTimeout(()=>{
-    tunnel.innerHTML='';
-    tunnel.style.display='none';
-    if(role==='teacher'){
-      document.getElementById('login').style.display='none';
-      document.getElementById('teacherPanel').style.display='block';
-      loadTasks('teacher');
-    } else {
-      document.getElementById('login').style.display='none';
-      document.getElementById('studentPanel').style.display='block';
-      loadTasks('student');
+    } catch (error) {
+      console.error(error);
+      errorMsg.textContent = error.message;
     }
-  },1500);
-}
-
-async function addTask() {
-  const title = document.getElementById('taskTitle').value;
-  const desc = document.getElementById('taskDesc').value;
-  const user = auth.currentUser;
-  if(!user) return;
-  await addDoc(collection(db, "tasks"), { title, description: desc, createdBy: user.uid, createdAt: new Date() });
-  loadTasks('teacher');
-}
-
-async function loadTasks(role){
-  const taskList = role==='teacher' ? document.getElementById('taskList') : document.getElementById('taskListStudent');
-  taskList.innerHTML='';
-  const querySnapshot = await getDocs(collection(db, "tasks"));
-  querySnapshot.forEach(docSnap=>{
-    const li = document.createElement('li');
-    li.textContent = docSnap.data().title + " - " + docSnap.data().description;
-    taskList.appendChild(li);
-  });
-}
+  }
 </script>
+
 </body>
 </html>
