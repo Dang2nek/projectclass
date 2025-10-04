@@ -1,149 +1,162 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login / Register</title>
+<title>Class Web Login</title>
 <style>
   body {
+    font-family: 'Poppins', sans-serif;
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0a0a0a;
-    color: #fff;
+    padding: 0;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    background: linear-gradient(135deg, #74ebd5, #ACB6E5);
     overflow: hidden;
   }
-  #login {
-    background: #1a1a1a;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px #00f;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 300px;
-    z-index: 2;
-    position: relative;
-  }
-  input, select, button {
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
-    font-size: 16px;
-  }
-  input, select {
-    width: 100%;
-  }
-  button {
-    background: #00f;
-    color: #fff;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
-  }
-  button:hover {
-    background: #0077ff;
-  }
-  #errorMsg {
-    color: #ff4444;
-    font-size: 14px;
-  }
-  #tunnel {
+  .login-container {
     position: absolute;
-    top:0; left:0;
-    width: 100%; height: 100%;
-    background: radial-gradient(circle, #fff 0%, #000 60%);
-    animation: tunnelAnim 1s forwards;
-    display: none;
-    z-index: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.95);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    text-align: center;
+    z-index: 10;
   }
-  @keyframes tunnelAnim {
-    0% { transform: scale(0.1); opacity: 1; }
-    100% { transform: scale(10); opacity: 0; }
+  .login-container h1 { margin-bottom: 24px; color:#333; }
+  input { width: 100%; padding: 12px; margin: 12px 0; border-radius: 8px; border:1px solid #ccc; font-size:16px; }
+  button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
+  button:hover { background:#45a049; }
+  .error { color:red; margin-top:10px; min-height:18px; }
+  #warpCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width:100%;
+    height:100%;
+    z-index: 5;
+    display:none;
+    background:black;
+  }
+  @media(max-width: 400px){
+    .login-container { padding: 30px 20px; }
+    .login-container h1 { font-size: 24px; }
+    input { padding: 10px; font-size: 15px; }
+    button { padding: 12px; font-size: 16px; }
   }
 </style>
 </head>
 <body>
 
-<div id="login">
-  <h2>Login / Register</h2>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <select id="role">
-    <option value="teacher">Teacher</option>
-    <option value="student">Student</option>
-  </select>
-  <button onclick="loginUser()">Login / Register</button>
-  <div id="errorMsg"></div>
+<canvas id="warpCanvas"></canvas>
+
+<div class="login-container" id="loginBox">
+  <h1>Class Login</h1>
+  <input type="email" id="email" placeholder="Email" required>
+  <button id="loginBtn">Đăng nhập bằng Google</button>
+  <div class="error" id="error"></div>
 </div>
 
-<div id="tunnel"></div>
-
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-    authDomain: "classweb-11389.firebaseapp.com",
-    projectId: "classweb-11389",
-    storageBucket: "classweb-11389.firebasestorage.app",
-    messagingSenderId: "91367336185",
-    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-    measurementId: "G-7123YZQKWV"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MSG_ID",
+    appId: "YOUR_APP_ID"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
 
-  async function loginUser() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const role = document.getElementById('role').value;
-    const errorMsg = document.getElementById('errorMsg');
-    errorMsg.textContent = '';
+  // Email giáo viên
+  const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
 
-    try {
-      // Thử login
-      let userCredential;
-      try {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
-      } catch {
-        // Nếu login fail thì đăng ký
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, role + 's', userCredential.user.uid), {
-          email: email,
-          role: role,
-          name: email.split('@')[0]
-        });
+  // Warp canvas
+  const canvas = document.getElementById("warpCanvas");
+  const ctx = canvas.getContext("2d");
+  let w = canvas.width = window.innerWidth;
+  let h = canvas.height = window.innerHeight;
+
+  let stars = [];
+  for(let i=0;i<800;i++){
+    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, color:`hsl(${Math.random()*360},80%,70%)`});
+  }
+
+  function warpAnimation() {
+    ctx.fillStyle="rgba(0,0,0,0.3)";
+    ctx.fillRect(0,0,w,h);
+    for(let s of stars){
+      s.z -= 15;
+      if(s.z <=0){
+        s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2;
+        s.color=`hsl(${Math.random()*360},80%,70%)`;
+      }
+      let k = 500/s.z;
+      let px = s.x*k + w/2;
+      let py = s.y*k + h/2;
+      if(px>=0 && px<w && py>=0 && py<h){
+        let size = 2*k;
+        let gradient = ctx.createRadialGradient(px, py, 0, px, py, size);
+        gradient.addColorStop(0, s.color);
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(px-size/2, py-size/2, size, size);
+      }
+    }
+    requestAnimationFrame(warpAnimation);
+  }
+
+  async function login(){
+    const emailInput = document.getElementById("email").value.trim();
+    const errorDiv = document.getElementById("error");
+    let role = "student";
+    try{
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
+      const studentDoc = await getDoc(doc(db,"students",user.displayName));
+
+      // Check first login + teacher code
+      if(!teacherDoc.exists() && !studentDoc.exists() && teacherEmails.includes(user.email)){
+        let code = prompt("Nhập mã giáo viên:");
+        if(code==="GV123") role="teacher";
+      } else if(teacherDoc.exists()) role="teacher";
+
+      if(role==="teacher"){
+        await setDoc(doc(db,"teachers",user.displayName),{name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
+        window.location.href="https://teachers-x4og.onrender.com/";
+      } else {
+        await setDoc(doc(db,"students",user.displayName),{name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
+        window.location.href="https://students-6fym.onrender.com/";
       }
 
-      // Hiệu ứng tunnel
-      const tunnel = document.getElementById('tunnel');
-      tunnel.style.display = 'block';
-      tunnel.style.animation = 'tunnelAnim 1s forwards';
-      setTimeout(() => {
-        if (role === 'teacher') {
-          alert('Redirecting to teacher dashboard...');
-          // window.location.href = 'teacher.html';
-        } else {
-          alert('Redirecting to student dashboard...');
-          // window.location.href = 'student.html';
-        }
-      }, 1000);
+      // Hiệu ứng warp
+      document.getElementById("loginBox").style.opacity="0";
+      canvas.style.display="block";
+      warpAnimation();
 
-    } catch (error) {
-      console.error(error);
-      errorMsg.textContent = error.message;
+    } catch(e){
+      console.error(e);
+      errorDiv.textContent="Đăng nhập thất bại!";
     }
   }
-</script>
 
+  document.getElementById("loginBtn").addEventListener("click",login);
+  window.addEventListener("resize",()=>{w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;});
+</script>
 </body>
 </html>
