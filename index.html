@@ -5,20 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Login</title>
 <style>
-body, html {
-  margin:0; padding:0; overflow:hidden; font-family:'Poppins', sans-serif; height:100vh; background:black;
-}
-.login-container {
-  position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-  background: rgba(255,255,255,0.95); padding:40px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  text-align:center; z-index:10; transition: opacity 0.5s ease;
-}
-.login-container h1 { margin-bottom:24px; color:#333; }
-input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
-button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
-button:hover { background:#45a049; }
-#error { color:red; margin-top:10px; }
-#warpCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; display:none; }
+body, html {margin:0;padding:0;height:100vh;font-family:'Poppins',sans-serif;background:black;overflow:hidden;}
+.login-container {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:40px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.3);text-align:center;z-index:10;transition:opacity 0.5s;}
+.login-container h1{margin-bottom:24px;color:#333;}
+input{width:100%;padding:12px;margin:12px 0;border-radius:8px;border:1px solid #ccc;font-size:16px;}
+button{width:100%;padding:12px;border:none;border-radius:10px;background:#4CAF50;color:white;cursor:pointer;font-size:16px;margin-top:10px;}
+button:hover{background:#45a049;}
+#error{color:red;margin-top:10px;}
+#warpCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;display:none;}
 </style>
 </head>
 <body>
@@ -27,7 +21,6 @@ button:hover { background:#45a049; }
 
 <div class="login-container" id="loginBox">
   <h1>Class Login</h1>
-  <input type="email" id="email" placeholder="Email">
   <button id="loginBtn">Login with Google</button>
   <div id="error"></div>
 </div>
@@ -52,32 +45,36 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// 🔹 Danh sách giáo viên
-const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
-
-// 🔹 Warp effect
+// Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
-function warpTransition(targetURL){
-  warpCanvas.style.display="block";
+
+function warpTransition(targetURL) {
+  warpCanvas.style.display = "block";
   let w = warpCanvas.width = window.innerWidth;
   let h = warpCanvas.height = window.innerHeight;
   let stars = [];
-  for(let i=0;i<1200;i++) stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
-  function draw(){
+  for(let i=0;i<1200;i++){
+    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
+  }
+  function draw() {
     ctx.fillStyle="rgba(0,0,0,0.2)";
     ctx.fillRect(0,0,w,h);
-    for(let i=0;i<stars.length;i++){
-      let s = stars[i];
+    for(let s of stars){
       s.z -= 25;
       if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
       let k = 800/s.z;
       let px = s.x*k+w/2;
       let py = s.y*k+h/2;
       const size = s.size*k/5;
-      ctx.strokeStyle = s.color; ctx.lineWidth = size;
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - s.x*0.1, py - s.y*0.1); ctx.stroke();
-      ctx.fillStyle=s.color; ctx.fillRect(px, py, size, size);
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
+      ctx.stroke();
+      ctx.fillStyle=s.color;
+      ctx.fillRect(px, py, size, size);
     }
     requestAnimationFrame(draw);
   }
@@ -94,17 +91,18 @@ async function login(){
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
+    // Đọc teacher/student bằng displayName
     const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
     const studentDoc = await getDoc(doc(db,"students",user.displayName));
 
     let role = "student";
 
-    if(teacherEmails.includes(user.email)){
-      // hỏi mật mã nếu chưa có doc teacher
-      if(!teacherDoc.exists()){
-        let codeInput = prompt("Nhập mã giáo viên:");
-        if(codeInput==="GV123") role="teacher";
-      } else role="teacher";
+    // Lần đầu đăng nhập, hỏi mật mã giáo viên
+    if(!teacherDoc.exists() && !studentDoc.exists()){
+      let codeInput = prompt("Nhập mã giáo viên (GV123) nếu là giáo viên, để trống nếu học sinh:");
+      if(codeInput==="GV123") role="teacher";
+    } else if(teacherDoc.exists()){
+      role="teacher";
     }
 
     // Tạo document nếu chưa có
@@ -114,7 +112,7 @@ async function login(){
       await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // Fade out form + warp effect
+    // Warp effect + redirect
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
@@ -123,6 +121,5 @@ async function login(){
 
 document.getElementById("loginBtn").addEventListener("click", login);
 </script>
-
 </body>
 </html>
