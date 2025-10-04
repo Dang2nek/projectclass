@@ -7,88 +7,135 @@
 <style>
   body {
     font-family: Arial;
-    background: #f0f2f5;
+    background: linear-gradient(to right, #74ebd5, #ACB6E5);
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
   }
+  .login-container {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    text-align: center;
+    width: 340px;
+  }
+  .login-container h1 {
+    margin-bottom: 24px;
+    color: #333;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    margin: 12px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+  }
   button {
-    padding: 12px 24px;
+    width: 100%;
+    padding: 12px;
     font-size: 18px;
-    background-color: #4CAF50;
-    color: white;
     border: none;
     border-radius: 8px;
+    background-color: #4CAF50;
+    color: white;
     cursor: pointer;
     transition: 0.3s;
   }
   button:hover { background-color: #45a049; }
-  h1 { margin-bottom: 24px; }
+  .error { color: red; margin-top: 12px; }
 </style>
 </head>
 <body>
-<h1>Class Web Login</h1>
-<button id="loginBtn">Đăng nhập bằng Google</button>
+
+<div class="login-container">
+  <h1>Class Login</h1>
+  <input type="email" id="email" placeholder="Email" required>
+  <button id="loginBtn">Đăng nhập bằng Google</button>
+  <div class="error" id="error"></div>
+</div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-  // 🔹 Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-    authDomain: "classweb-11389.firebaseapp.com",
-    projectId: "classweb-11389",
-    storageBucket: "classweb-11389.firebasestorage.app",
-    messagingSenderId: "91367336185",
-    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-    measurementId: "G-7123YZQKWV"
-  };
+// 🔹 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+  authDomain: "classweb-11389.firebaseapp.com",
+  projectId: "classweb-11389",
+  storageBucket: "classweb-11389.firebasestorage.app",
+  messagingSenderId: "91367336185",
+  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+  measurementId: "G-7123YZQKWV"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-  // 🔹 Hàm login
-  async function login() {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+// 🔹 Danh sách email giáo viên cho phép
+const teacherEmails = ["teacher1@gmail.com", "teacher2@gmail.com"];
 
-      const code = prompt("Nhập mã giáo viên (nếu có):");
+async function login() {
+  const emailInput = document.getElementById("email").value.trim();
+  const errorDiv = document.getElementById("error");
+  errorDiv.textContent = "";
 
-      if(code === "GV123"){  // Mã giáo viên
-        await setDoc(doc(db, "teachers", user.uid), {
-          name: user.displayName,
-          email: user.email,
-          role: "teacher",
-          loginAt: new Date()
-        });
-        alert("Chào giáo viên!");
-        window.location.href = "https://teachers-x4og.onrender.com/";
-      } else {
-        await setDoc(doc(db, "students", user.uid), {
-          name: user.displayName,
-          email: user.email,
-          role: "student",
-          loginAt: new Date()
-        });
-        alert("Chào học sinh!");
-        window.location.href = "https://students-6fym.onrender.com/";
-      }
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-    } catch(error) {
-      console.error(error);
-      alert("Đăng nhập thất bại!");
+    // 🔹 Kiểm tra Firestore role
+    const teacherDoc = await getDoc(doc(db, "teachers", user.uid));
+    const studentDoc = await getDoc(doc(db, "students", user.uid));
+
+    if (teacherDoc.exists()) {
+      // Đã có teacher → redirect
+      window.location.href = "https://teachers-x4og.onrender.com/";
+      return;
+    } else if (studentDoc.exists()) {
+      // Đã có student → redirect
+      window.location.href = "https://students-6fym.onrender.com/";
+      return;
     }
-  }
 
-  // 🔹 Gán sự kiện cho button
-  document.getElementById("loginBtn").addEventListener("click", login);
+    // 🔹 Nếu chưa có document → nhập mã giáo viên
+    let codeInput = "";
+    if (teacherEmails.includes(user.email)) {
+      codeInput = prompt("Nhập mã giáo viên (nếu có):");
+    }
+
+    if (teacherEmails.includes(user.email) && codeInput === "GV123") {
+      await setDoc(doc(db, "teachers", user.uid), {
+        name: user.displayName,
+        email: user.email,
+        role: "teacher",
+        loginAt: new Date()
+      });
+      window.location.href = "https://teachers-x4og.onrender.com/";
+    } else {
+      await setDoc(doc(db, "students", user.uid), {
+        name: user.displayName,
+        email: user.email,
+        role: "student",
+        loginAt: new Date()
+      });
+      window.location.href = "https://students-6fym.onrender.com/";
+    }
+
+  } catch(error) {
+    console.error(error);
+    errorDiv.textContent = "Đăng nhập thất bại! Kiểm tra email hoặc kết nối.";
+  }
+}
+
+// Gán event listener
+document.getElementById("loginBtn").addEventListener("click", login);
 
 </script>
 </body>
