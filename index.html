@@ -6,25 +6,12 @@
 <title>Class Login</title>
 <style>
 body, html {
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  font-family:'Poppins', sans-serif;
-  height:100vh;
-  background:black;
+  margin:0; padding:0; overflow:hidden; font-family:'Poppins', sans-serif; height:100vh; background:black;
 }
 .login-container {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  background: rgba(255,255,255,0.95);
-  padding:40px;
-  border-radius:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  text-align:center;
-  z-index:10;
-  transition: opacity 0.5s ease;
+  position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  background: rgba(255,255,255,0.95); padding:40px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  text-align:center; z-index:10; transition: opacity 0.5s ease;
 }
 .login-container h1 { margin-bottom:24px; color:#333; }
 input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
@@ -32,13 +19,7 @@ button { width:100%; padding:12px; border:none; border-radius:10px; background:#
 button:hover { background:#45a049; }
 #error { color:red; margin-top:10px; }
 #warpCanvas {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  z-index:9999;
-  display:none;
+  position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; display:none;
 }
 </style>
 </head>
@@ -112,6 +93,21 @@ function warpTransition(targetURL) {
   setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
+// 🔹 Tạo document với ID = displayName
+async function createDocWithName(collection, name, data){
+  let id = name.replace(/\s+/g,'_');
+  let ref = doc(db, collection, id);
+  let docSnap = await getDoc(ref);
+  let counter = 1;
+  while(docSnap.exists()){
+    id = name.replace(/\s+/g,'_')+"_"+counter;
+    ref = doc(db, collection, id);
+    docSnap = await getDoc(ref);
+    counter++;
+  }
+  await setDoc(ref, data);
+}
+
 // 🔹 Login
 async function login(){
   const errorDiv = document.getElementById("error");
@@ -119,31 +115,26 @@ async function login(){
   try{
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    const displayName = user.displayName || "user";
 
-    // Đọc cả teachers và students
-    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
-    const studentDoc = await getDoc(doc(db,"students",user.uid));
+    const teacherDoc = await getDoc(doc(db,"teachers",displayName.replace(/\s+/g,'_')));
+    const studentDoc = await getDoc(doc(db,"students",displayName.replace(/\s+/g,'_')));
 
     let role = "student";
 
-    // Nếu lần đầu đăng nhập (chưa có doc)
-    if(!teacherDoc.exists() && !studentDoc.exists()){
+    // Prompt mật mã giáo viên lần đầu
+    if(!teacherDoc.exists() && !studentDoc.exists() && ["teacher1@gmail.com","teacher2@gmail.com"].includes(user.email)){
       let codeInput = prompt("Nhập mã giáo viên:");
-      if(codeInput==="GV123"){
-        role="teacher";
-      }
-    } else if(teacherDoc.exists()){
-      role="teacher";
+      if(codeInput==="GV123"){ role="teacher"; }
+    } else if(teacherDoc.exists()){ role="teacher"; }
+
+    // Tạo document
+    if(role==="teacher" && !teacherDoc.exists()){
+      await createDocWithName("teachers", displayName, {name:displayName,email:user.email,role:"teacher",loginAt:new Date()});
+    } else if(role==="student" && !studentDoc.exists()){
+      await createDocWithName("students", displayName, {name:displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // Tạo document nếu chưa có
-    if(!teacherDoc.exists() && role==="teacher"){
-      await setDoc(doc(db,"teachers",user.uid), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(!studentDoc.exists()){
-      await setDoc(doc(db,"students",user.uid), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
-    }
-
-    // Fade out form và warp
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
