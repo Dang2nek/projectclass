@@ -4,63 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Web Login</title>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-
-  // 🔹 Cấu hình Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-    authDomain: "classweb-11389.firebaseapp.com",
-    projectId: "classweb-11389",
-    storageBucket: "classweb-11389.firebasestorage.app",
-    messagingSenderId: "91367336185",
-    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-    measurementId: "G-7123YZQKWV"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
-
-  // 🔹 Hàm login
-  async function login() {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Prompt mã giáo viên
-      const code = prompt("Nhập mã giáo viên (nếu có):");
-
-      if(code === "GV123"){  // Ví dụ mã giáo viên
-        await setDoc(doc(db, "teachers", user.uid), {
-          name: user.displayName,
-          email: user.email,
-          role: "teacher",
-          loginAt: new Date()
-        });
-        alert("Chào giáo viên!");
-        window.location.href = "https://teachers-x4og.onrender.com/";
-      } else {
-        await setDoc(doc(db, "students", user.uid), {
-          name: user.displayName,
-          email: user.email,
-          role: "student",
-          loginAt: new Date()
-        });
-        alert("Chào học sinh!");
-        window.location.href = "https://students-6fym.onrender.com/";
-      }
-
-    } catch(error) {
-      console.error(error);
-      alert("Đăng nhập thất bại!");
-    }
-  }
-</script>
-
 <style>
   body {
     font-family: Arial;
@@ -85,9 +28,68 @@
   h1 { margin-bottom: 24px; }
 </style>
 </head>
-
 <body>
-  <h1>Class Web Login</h1>
-  <button onclick="login()">Đăng nhập bằng Google</button>
+<h1>Class Web Login</h1>
+<button id="loginBtn">Đăng nhập bằng Google</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+  // 🔹 Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+    authDomain: "classweb-11389.firebaseapp.com",
+    projectId: "classweb-11389",
+    storageBucket: "classweb-11389.firebasestorage.app",
+    messagingSenderId: "91367336185",
+    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+    measurementId: "G-7123YZQKWV"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // 🔹 Hàm login
+  async function login() {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const code = prompt("Nhập mã giáo viên (nếu có):");
+
+      if(code === "GV123"){  // Mã giáo viên
+        await setDoc(doc(db, "teachers", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          role: "teacher",
+          loginAt: new Date()
+        });
+        alert("Chào giáo viên!");
+        window.location.href = "https://teachers-x4og.onrender.com/";
+      } else {
+        await setDoc(doc(db, "students", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          role: "student",
+          loginAt: new Date()
+        });
+        alert("Chào học sinh!");
+        window.location.href = "https://students-6fym.onrender.com/";
+      }
+
+    } catch(error) {
+      console.error(error);
+      alert("Đăng nhập thất bại!");
+    }
+  }
+
+  // 🔹 Gán sự kiện cho button
+  document.getElementById("loginBtn").addEventListener("click", login);
+
+</script>
 </body>
 </html>
