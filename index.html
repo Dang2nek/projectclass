@@ -3,46 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Web Login</title>
+<title>Class Login</title>
 <style>
 body, html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  font-family: 'Poppins', sans-serif;
-  height: 100vh;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  font-family:'Poppins', sans-serif;
+  height:100vh;
+  background:black;
 }
-
 .login-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
   background: rgba(255,255,255,0.95);
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-  text-align: center;
-  z-index: 10;
+  padding:40px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  text-align:center;
+  z-index:10;
   transition: opacity 0.5s ease;
 }
-
-.login-container h1 { margin-bottom: 24px; color:#333; }
-input { width: 100%; padding: 12px; margin: 12px 0; border-radius: 8px; border:1px solid #ccc; font-size:16px; }
+.login-container h1 { margin-bottom:24px; color:#333; }
+input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
 button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
 button:hover { background:#45a049; }
-
 #error { color:red; margin-top:10px; }
-
 #warpCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position:fixed;
+  top:0;
+  left:0;
   width:100%;
   height:100%;
-  z-index: 5;
+  z-index:9999;
   display:none;
-  background:black;
 }
 </style>
 </head>
@@ -72,58 +68,65 @@ const firebaseConfig = {
   appId: "1:91367336185:web:30a78cfe10e459b0605a28",
   measurementId: "G-7123YZQKWV"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-const teacherEmails = ["teacher1@gmail.com", "teacher2@gmail.com"];
+// Teacher whitelist
+const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
+const warpCanvas = document.getElementById("warpCanvas");
+const ctx = warpCanvas.getContext("2d");
 
-// 🔹 warp canvas
-const canvas = document.getElementById("warpCanvas");
-const ctx = canvas.getContext("2d");
-let w = canvas.width = window.innerWidth;
-let h = canvas.height = window.innerHeight;
-let stars = [];
-for(let i=0;i<800;i++){
-  stars.push({x:Math.random()*w- w/2, y:Math.random()*h - h/2, z:Math.random()*w});
-}
-
-function warpAnimation() {
-  ctx.fillStyle="black";
-  ctx.fillRect(0,0,w,h);
-  ctx.fillStyle="white";
-  for(let i=0;i<stars.length;i++){
-    let s = stars[i];
-    s.z -= 10;
-    if(s.z<=0){s.z = w; s.x = Math.random()*w - w/2; s.y = Math.random()*h - h/2;}
-    let k = 500/s.z;
-    let px = s.x*k + w/2;
-    let py = s.y*k + h/2;
-    if(px>=0 && px<w && py>=0 && py<h){
-      ctx.fillRect(px, py, 2*k, 2*k);
-    }
+function warpTransition(targetURL) {
+  warpCanvas.style.display = "block";
+  let w = warpCanvas.width = window.innerWidth;
+  let h = warpCanvas.height = window.innerHeight;
+  let stars = [];
+  for(let i=0;i<1200;i++){
+    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
   }
-  requestAnimationFrame(warpAnimation);
+  function draw() {
+    ctx.fillStyle="rgba(0,0,0,0.2)";
+    ctx.fillRect(0,0,w,h);
+    for(let i=0;i<stars.length;i++){
+      let s = stars[i];
+      s.z -= 25;
+      if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
+      let k = 800/s.z;
+      let px = s.x*k+w/2;
+      let py = s.y*k+h/2;
+      const size = s.size*k/5;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
+      ctx.stroke();
+      ctx.fillStyle=s.color;
+      ctx.fillRect(px, py, size, size);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+  window.addEventListener("resize",()=>{ w=warpCanvas.width=window.innerWidth; h=warpCanvas.height=window.innerHeight; });
+  setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
-async function login() {
+// 🔹 Login
+async function login(){
   const emailInput = document.getElementById("email").value.trim();
   const errorDiv = document.getElementById("error");
-  errorDiv.textContent = "";
-
-  try {
+  errorDiv.textContent="";
+  try{
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-
-    const teacherDoc = await getDoc(doc(db, "teachers", user.uid));
-    const studentDoc = await getDoc(doc(db, "students", user.uid));
-
+    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
+    const studentDoc = await getDoc(doc(db,"students",user.uid));
     let role = "student";
     if(!teacherDoc.exists() && !studentDoc.exists() && teacherEmails.includes(user.email)){
       let codeInput = prompt("Nhập mã giáo viên:");
-      if(codeInput === "GV123") role="teacher";
+      if(codeInput==="GV123") role="teacher";
     } else if(teacherDoc.exists()) role="teacher";
 
     // Tạo document nếu chưa có
@@ -133,27 +136,14 @@ async function login() {
       await setDoc(doc(db,"students",user.uid), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // 🔹 show warp effect then redirect
+    // Fade out form
     document.getElementById("loginBox").style.opacity="0";
-    canvas.style.display="block";
-    warpAnimation();
-    setTimeout(()=>{
-      if(role==="teacher") window.location.href="https://teachers-x4og.onrender.com/";
-      else window.location.href="https://students-6fym.onrender.com/";
-    },2000);
+    warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
-  } catch(e){
-    console.error(e);
-    errorDiv.textContent="Đăng nhập thất bại!";
-  }
+  }catch(e){ console.error(e); errorDiv.textContent="Đăng nhập thất bại!"; }
 }
 
 document.getElementById("loginBtn").addEventListener("click", login);
-
-window.addEventListener("resize", ()=>{
-  w=canvas.width=window.innerWidth;
-  h=canvas.height=window.innerHeight;
-});
 </script>
 
 </body>
