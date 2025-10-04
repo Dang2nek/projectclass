@@ -6,8 +6,7 @@
 <title>Class Web Login</title>
 <style>
   body {margin:0; padding:0; height:100vh; display:flex; justify-content:center; align-items:center; font-family:'Poppins',sans-serif; background:linear-gradient(135deg,#74ebd5,#ACB6E5); overflow:hidden;}
-  .login-container {background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); padding:50px 40px; border-radius:20px; box-shadow:0 15px 40px rgba(0,0,0,0.25); width:360px; max-width:90%; text-align:center; animation:slideIn 0.8s ease-out;}
-  @keyframes slideIn {0%{transform:translateY(-50px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
+  .login-container {background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); padding:50px 40px; border-radius:20px; box-shadow:0 15px 40px rgba(0,0,0,0.25); width:360px; max-width:90%; text-align:center;}
   h1{margin-bottom:24px;color:#333;}
   input{width:100%;padding:12px;margin:12px 0;border-radius:8px;border:1px solid #ccc;font-size:16px;}
   input:focus{border-color:#4CAF50;box-shadow:0 0 8px rgba(76,175,80,0.4);outline:none;}
@@ -15,8 +14,8 @@
   button:hover{background:#45a049;}
   button:active::after{content:'';position:absolute;width:200%;height:200%;top:-50%;left:-50%;background:rgba(255,255,255,0.3);border-radius:50%;animation:ripple 0.6s ease-out;}
   @keyframes ripple{0%{transform:scale(0);opacity:1;}100%{transform:scale(1);opacity:0;}}
-  .error{color:red;margin-top:15px;font-size:14px;min-height:18px;opacity:0.9;}
-  #warpCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;display:none;background:black;}
+  .error{color:red;margin-top:15px;font-size:14px;min-height:18px;}
+  #warpCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1; display:none;}
 </style>
 </head>
 <body>
@@ -35,7 +34,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.2/firebas
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.6.2/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.6.2/firebase-auth.js";
 
-// 🔹 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
   authDomain: "classweb-11389.firebaseapp.com",
@@ -45,15 +43,14 @@ const firebaseConfig = {
   appId: "1:91367336185:web:30a78cfe10e459b0605a28",
   measurementId: "G-7123YZQKWV"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// 🔹 Danh sách email giáo viên
 const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
 
-// 🔹 Warp canvas Star Wars
 const canvas = document.getElementById("warpCanvas");
 const ctx = canvas.getContext("2d");
 let w=canvas.width=window.innerWidth;
@@ -72,7 +69,6 @@ function warpStarWars(){
   requestAnimationFrame(warpStarWars);
 }
 
-// 🔹 Tạo doc ID giống name (tránh trùng)
 async function createUniqueDoc(collection,name,data){
   let id=name.replace(/\s+/g,'_');
   let ref=doc(db,collection,id);
@@ -87,38 +83,37 @@ async function createUniqueDoc(collection,name,data){
   await setDoc(ref,data);
 }
 
-// 🔹 Login function
 async function login(){
   const errorDiv=document.getElementById("error");
   try{
     const result=await signInWithPopup(auth,provider);
     const user=result.user;
-    const teacherDocRef = doc(db,"teachers",user.displayName.replace(/\s+/g,'_'));
-    const studentDocRef = doc(db,"students",user.displayName.replace(/\s+/g,'_'));
+    const displayName=user.displayName || "user";
+    const teacherDocRef=doc(db,"teachers",displayName.replace(/\s+/g,'_'));
+    const studentDocRef=doc(db,"students",displayName.replace(/\s+/g,'_'));
     const teacherDoc = await getDoc(teacherDocRef);
     const studentDoc = await getDoc(studentDocRef);
 
     let role="student";
 
     if(teacherEmails.includes(user.email)){
-      if(!teacherDoc.exists()){ 
-        let code=prompt("Nhập mã giáo viên:");
+      if(!teacherDoc.exists()){
+        let code=prompt("Nhập mã giáo viên lần đầu:");
         if(code==="GV123") role="teacher";
         else {errorDiv.textContent="Mã giáo viên sai!"; return;}
-      } else { role="teacher"; }
+      } else {role="teacher";}
     }
 
     if(role==="teacher" && !teacherDoc.exists()){
-      await createUniqueDoc("teachers",user.displayName,{name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
+      await createUniqueDoc("teachers",displayName,{name:displayName,email:user.email,role:"teacher",loginAt:new Date()});
     } else if(role==="student" && !studentDoc.exists()){
-      await createUniqueDoc("students",user.displayName,{name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
+      await createUniqueDoc("students",displayName,{name:displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // 🔹 Star Wars warp effect
     document.getElementById("loginBox").style.opacity="0";
     canvas.style.display="block";
     warpStarWars();
-    setTimeout(()=>{window.location.href = role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/";},2000);
+    setTimeout(()=>{window.location.href=role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/";},2000);
 
   }catch(err){console.error(err); errorDiv.textContent="Đăng nhập thất bại!";}
 }
@@ -126,6 +121,5 @@ async function login(){
 document.getElementById("loginBtn").addEventListener("click",login);
 window.addEventListener("resize",()=>{w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight;});
 </script>
-
 </body>
 </html>
