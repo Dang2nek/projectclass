@@ -5,47 +5,111 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Web Login</title>
 <style>
+  /* 🌈 Background gradient full screen */
   body {
-    font-family: Arial;
-    background: linear-gradient(to right, #74ebd5, #ACB6E5);
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+    overflow: hidden;
   }
+
+  /* 🎨 Login container */
   .login-container {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 50px 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    width: 360px;
+    max-width: 90%;
     text-align: center;
-    width: 340px;
+    animation: slideIn 0.8s ease-out;
   }
+
+  @keyframes slideIn {
+    0% { transform: translateY(-50px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
   .login-container h1 {
-    margin-bottom: 24px;
+    margin-bottom: 30px;
     color: #333;
+    font-size: 28px;
+    letter-spacing: 1px;
   }
+
   input {
     width: 100%;
-    padding: 10px;
-    margin: 12px 0;
-    border-radius: 6px;
+    padding: 12px;
+    margin: 15px 0;
+    border-radius: 12px;
     border: 1px solid #ccc;
     font-size: 16px;
+    transition: 0.3s;
   }
+
+  input:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    outline: none;
+  }
+
+  /* 🌟 Button style with ripple effect */
   button {
+    position: relative;
+    overflow: hidden;
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     font-size: 18px;
     border: none;
-    border-radius: 8px;
-    background-color: #4CAF50;
+    border-radius: 12px;
+    background: #4CAF50;
     color: white;
     cursor: pointer;
     transition: 0.3s;
+    margin-top: 10px;
   }
-  button:hover { background-color: #45a049; }
-  .error { color: red; margin-top: 12px; }
+
+  button:hover {
+    background: #45a049;
+  }
+
+  button:active::after {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: ripple 0.6s ease-out;
+  }
+
+  @keyframes ripple {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+
+  .error {
+    color: red;
+    margin-top: 15px;
+    font-size: 14px;
+    min-height: 18px;
+    opacity: 0.9;
+  }
+
+  @media(max-width: 400px){
+    .login-container { padding: 30px 20px; }
+    .login-container h1 { font-size: 24px; }
+    input { padding: 10px; font-size: 15px; }
+    button { padding: 12px; font-size: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -95,24 +159,21 @@ async function login() {
     const studentDoc = await getDoc(doc(db, "students", user.uid));
 
     if (teacherDoc.exists()) {
-      // Redirect teacher
       window.location.href = "https://teachers-x4og.onrender.com/";
       return;
     } else if (studentDoc.exists()) {
-      // Redirect student
       window.location.href = "https://students-6fym.onrender.com/";
       return;
     }
 
-    // 🔹 Nếu chưa có document → hỏi mã nếu email là giáo viên
+    // 🔹 Prompt mã lần đầu login nếu email là giáo viên
     let codeInput = "";
     if (teacherEmails.includes(user.email)) {
       codeInput = prompt("Nhập mã giáo viên:");
-      if (codeInput === null) codeInput = ""; // Nếu user cancel
+      if (codeInput === null) codeInput = "";
     }
 
     if (teacherEmails.includes(user.email) && codeInput === "GV123") {
-      // Tạo document teacher
       await setDoc(doc(db, "teachers", user.uid), {
         name: user.displayName,
         email: user.email,
@@ -121,7 +182,6 @@ async function login() {
       });
       window.location.href = "https://teachers-x4og.onrender.com/";
     } else {
-      // Tạo document student
       await setDoc(doc(db, "students", user.uid), {
         name: user.displayName,
         email: user.email,
