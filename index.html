@@ -73,8 +73,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// Teacher whitelist
-const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
+// Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
 
@@ -115,19 +114,27 @@ function warpTransition(targetURL) {
 
 // 🔹 Login
 async function login(){
-  const emailInput = document.getElementById("email").value.trim();
   const errorDiv = document.getElementById("error");
   errorDiv.textContent="";
   try{
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+
+    // Đọc cả teachers và students
     const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
     const studentDoc = await getDoc(doc(db,"students",user.uid));
+
     let role = "student";
-    if(!teacherDoc.exists() && !studentDoc.exists() && teacherEmails.includes(user.email)){
+
+    // Nếu lần đầu đăng nhập (chưa có doc)
+    if(!teacherDoc.exists() && !studentDoc.exists()){
       let codeInput = prompt("Nhập mã giáo viên:");
-      if(codeInput==="GV123") role="teacher";
-    } else if(teacherDoc.exists()) role="teacher";
+      if(codeInput==="GV123"){
+        role="teacher";
+      }
+    } else if(teacherDoc.exists()){
+      role="teacher";
+    }
 
     // Tạo document nếu chưa có
     if(!teacherDoc.exists() && role==="teacher"){
@@ -136,7 +143,7 @@ async function login(){
       await setDoc(doc(db,"students",user.uid), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // Fade out form
+    // Fade out form và warp
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
