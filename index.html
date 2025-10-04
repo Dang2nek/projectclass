@@ -5,7 +5,6 @@
   <title>Đăng nhập lớp học</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Reset cơ bản */
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
 
     body {
@@ -66,7 +65,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -88,26 +87,31 @@
 
     const loginBtn = document.getElementById("loginBtn");
 
+    // Hàm hỏi mã giáo viên và redirect
     async function askCodeAndRedirect(user) {
-      const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
+      // delay một chút để prompt không bị block
+      setTimeout(async () => {
+        const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
 
-      if (code === TEACHER_CODE) {
-        await setDoc(doc(db, "teachers", user.uid), {
-          email: user.email,
-          role: "teacher"
-        });
-        alert("Xin chào giáo viên!");
-        window.location.href = "https://teachers-x4og.onrender.com/";
-      } else {
-        await setDoc(doc(db, "students", user.uid), {
-          email: user.email,
-          role: "student"
-        });
-        alert("Xin chào học sinh!");
-        window.location.href = "https://students-6fym.onrender.com/";
-      }
+        if (code === TEACHER_CODE) {
+          await setDoc(doc(db, "teachers", user.uid), {
+            email: user.email,
+            role: "teacher"
+          });
+          alert("Xin chào giáo viên!");
+          window.location.href = "https://teachers-x4og.onrender.com/";
+        } else {
+          await setDoc(doc(db, "students", user.uid), {
+            email: user.email,
+            role: "student"
+          });
+          alert("Xin chào học sinh!");
+          window.location.href = "https://students-6fym.onrender.com/";
+        }
+      }, 100); // delay 100ms
     }
 
+    // Kiểm tra trạng thái login
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         loginBtn.style.display = "none";
@@ -117,6 +121,7 @@
       }
     });
 
+    // Nút login
     loginBtn.addEventListener("click", async () => {
       try {
         const result = await signInWithPopup(auth, provider);
