@@ -52,36 +52,32 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// Warp effect
+// 🔹 Danh sách giáo viên
+const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
+
+// 🔹 Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
-
-function warpTransition(targetURL) {
-  warpCanvas.style.display = "block";
+function warpTransition(targetURL){
+  warpCanvas.style.display="block";
   let w = warpCanvas.width = window.innerWidth;
   let h = warpCanvas.height = window.innerHeight;
   let stars = [];
-  for(let i=0;i<1200;i++){
-    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
-  }
-  function draw() {
+  for(let i=0;i<1200;i++) stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
+  function draw(){
     ctx.fillStyle="rgba(0,0,0,0.2)";
     ctx.fillRect(0,0,w,h);
-    for(let s of stars){
+    for(let i=0;i<stars.length;i++){
+      let s = stars[i];
       s.z -= 25;
       if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
       let k = 800/s.z;
       let px = s.x*k+w/2;
       let py = s.y*k+h/2;
       const size = s.size*k/5;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = size;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
-      ctx.stroke();
-      ctx.fillStyle=s.color;
-      ctx.fillRect(px, py, size, size);
+      ctx.strokeStyle = s.color; ctx.lineWidth = size;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - s.x*0.1, py - s.y*0.1); ctx.stroke();
+      ctx.fillStyle=s.color; ctx.fillRect(px, py, size, size);
     }
     requestAnimationFrame(draw);
   }
@@ -90,9 +86,7 @@ function warpTransition(targetURL) {
   setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
-// 🔹 Teacher Emails
-const teacherEmails = ["teacher1@gmail.com","teacher2@gmail.com"];
-
+// 🔹 Login
 async function login(){
   const errorDiv = document.getElementById("error");
   errorDiv.textContent="";
@@ -100,25 +94,27 @@ async function login(){
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
-    const studentDoc = await getDoc(doc(db,"students",user.uid));
+    const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
+    const studentDoc = await getDoc(doc(db,"students",user.displayName));
 
     let role = "student";
 
-    // Lần đầu login: hỏi mật mã giáo viên
-    if(!teacherDoc.exists() && !studentDoc.exists() && teacherEmails.includes(user.email)){
-      let codeInput = prompt("Nhập mã giáo viên:");
-      if(codeInput==="GV123"){ role="teacher"; }
-    } else if(teacherDoc.exists()){ role="teacher"; }
-
-    // Tạo document (ID = uid)
-    if(!teacherDoc.exists() && role==="teacher"){
-      await setDoc(doc(db,"teachers",user.uid), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(!studentDoc.exists()){
-      await setDoc(doc(db,"students",user.uid), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
+    if(teacherEmails.includes(user.email)){
+      // hỏi mật mã nếu chưa có doc teacher
+      if(!teacherDoc.exists()){
+        let codeInput = prompt("Nhập mã giáo viên:");
+        if(codeInput==="GV123") role="teacher";
+      } else role="teacher";
     }
 
-    // Warp + redirect
+    // Tạo document nếu chưa có
+    if(role==="teacher" && !teacherDoc.exists()){
+      await setDoc(doc(db,"teachers",user.displayName), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
+    } else if(role==="student" && !studentDoc.exists()){
+      await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
+    }
+
+    // Fade out form + warp effect
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
