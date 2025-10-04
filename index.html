@@ -1,137 +1,73 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Đăng nhập lớp học</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Web Login</title>
+<script type="module">
+  // Firebase SDK v9 module
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
-      color: #333;
-    }
+  const firebaseConfig = {
+    apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+    authDomain: "classweb-11389.firebaseapp.com",
+    projectId: "classweb-11389",
+    storageBucket: "classweb-11389.firebasestorage.app",
+    messagingSenderId: "91367336185",
+    appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+    measurementId: "G-7123YZQKWV"
+  };
 
-    .container {
-      background: white;
-      padding: 40px 60px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
 
-    h2 {
-      margin-bottom: 30px;
-      font-weight: 700;
-      color: #4A4A4A;
-    }
+  async function login() {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    #loginBtn {
-      padding: 15px 25px;
-      font-size: 16px;
-      font-weight: 600;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(90deg, #36D1DC, #5B86E5);
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
+      const code = prompt("Nhập mã giáo viên (nếu có):");
 
-    #loginBtn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
+      if(code === "GV123"){  // ví dụ mã giáo viên
+        // Teacher
+        await setDoc(doc(db, "teachers", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          role: "teacher",
+          loginAt: new Date()
+        });
+        alert("Chào giáo viên!");
+        window.location.href = "https://teachers-x4og.onrender.com/";
+      } else {
+        // Student
+        await setDoc(doc(db, "students", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          role: "student",
+          loginAt: new Date()
+        });
+        alert("Chào học sinh!");
+        window.location.href = "https://students-6fym.onrender.com/";
+      }
 
-    p {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #777;
+    } catch(error) {
+      console.error(error);
+      alert("Đăng nhập thất bại!");
     }
-  </style>
+  }
+</script>
+<style>
+  body { font-family: Arial; background: #f0f2f5; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
+  button { padding: 12px 24px; font-size: 18px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  button:hover { background-color: #45a049; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h2>Chào mừng đến lớp học</h2>
-    <button id="loginBtn">Đăng nhập với Google</button>
-    <p>Nhập mã giáo viên nếu bạn là giáo viên</p>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCdui3CboK7OQxad__E-IuA9vSg7MtriCM",
-      authDomain: "projectclass-81492.firebaseapp.com",
-      projectId: "projectclass-81492",
-      storageBucket: "projectclass-81492.appspot.com",
-      messagingSenderId: "396285528683",
-      appId: "1:396285528683:web:d0aea5d1fb08d85101ff2e",
-      measurementId: "G-33W7MS5JDB"
-    };
-
-    const TEACHER_CODE = "TEACHER123";
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const provider = new GoogleAuthProvider();
-
-    const loginBtn = document.getElementById("loginBtn");
-
-    // Hàm hỏi mã giáo viên và redirect
-    async function askCodeAndRedirect(user) {
-      // delay một chút để prompt không bị block
-      setTimeout(async () => {
-        const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
-
-        if (code === TEACHER_CODE) {
-          await setDoc(doc(db, "teachers", user.uid), {
-            email: user.email,
-            role: "teacher"
-          });
-          alert("Xin chào giáo viên!");
-          window.location.href = "https://teachers-x4og.onrender.com/";
-        } else {
-          await setDoc(doc(db, "students", user.uid), {
-            email: user.email,
-            role: "student"
-          });
-          alert("Xin chào học sinh!");
-          window.location.href = "https://students-6fym.onrender.com/";
-        }
-      }, 100); // delay 100ms
-    }
-
-    // Kiểm tra trạng thái login
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        loginBtn.style.display = "none";
-        await askCodeAndRedirect(user);
-      } else {
-        loginBtn.style.display = "inline-block";
-      }
-    });
-
-    // Nút login
-    loginBtn.addEventListener("click", async () => {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        await askCodeAndRedirect(user);
-      } catch (err) {
-        console.error("Lỗi đăng nhập:", err);
-        alert("Có lỗi xảy ra: " + err.message);
-      }
-    });
-  </script>
+  <h1>Class Web Login</h1>
+  <button onclick="login()">Đăng nhập bằng Google</button>
 </body>
 </html>
