@@ -1,518 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trang Lớp - Interactive</title>
-
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Firebase (compat build for easier auth usage) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
-  <!-- jsPDF + html2canvas for export PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5m1xYyqG0h1u1k1hF0Xdf1cQ6Jk8y8QmG3m3ZxK0e/8c0o1Yw3f9xzb0lQmVfQxw6b3r2WmB8w2w0Q2N6NQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/kq0sqw1nq2G3pQm1L3G0H1eO/6Zs9v3r5X0y2x0b3K1Y2m3Z0oP4WqY5h1V3t1Gk3b0s2D0G1q2r3s4t5u6w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-  <style>
-    /* small polished styles */
-    .glass { background: rgba(255,255,255,0.6); backdrop-filter: blur(6px); }
-    [data-theme="dark"] .glass { background: rgba(17,24,39,0.6); color: #e5e7eb; }
-    .avatar { width:40px; height:40px; border-radius:9999px; object-fit:cover; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Đăng nhập lớp học</title>
 </head>
-<body class="min-h-screen bg-gray-50" data-theme="light">
-  <div class="max-w-6xl mx-auto p-6">
+<body>
+  <h2>Đăng nhập lớp học</h2>
+  <button id="loginBtn">Đăng nhập với Google</button>
 
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <div id="logo"
-             class="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl"
-             style="background:linear-gradient(135deg,#6366f1,#ec4899);">
-          <span id="logo-letter">L</span>
-        </div>
-        <div>
-          <h1 id="class-name" class="text-2xl font-extrabold">Trang học tập lớp</h1>
-          <p id="teacher" class="text-sm text-gray-600">Giáo viên: ...</p>
-        </div>
-      </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-      <div class="flex items-center gap-3">
-        <div id="user-block" class="flex items-center gap-3 hidden">
-          <img id="user-photo" class="avatar" src="" alt="avatar">
-          <div class="text-right">
-            <div id="user-name" class="text-sm font-medium"></div>
-            <div id="user-email" class="text-xs text-gray-500"></div>
-          </div>
-        </div>
-
-        <button id="theme-toggle" class="px-3 py-2 rounded border">Tối/Sáng</button>
-        <button id="export-pdf" class="px-3 py-2 rounded bg-red-600 text-white">Xuất PDF</button>
-
-        <button id="btn-signin" class="px-3 py-2 bg-blue-600 text-white rounded">Đăng nhập Google</button>
-        <button id="btn-signout" class="px-3 py-2 border rounded hidden">Đăng xuất</button>
-
-        <label class="px-3 py-2 rounded bg-green-600 text-white cursor-pointer">
-          Import
-          <input id="import-file" type="file" accept="application/json" class="hidden">
-        </label>
-        <button id="export-json" class="px-3 py-2 rounded border">Export JSON</button>
-      </div>
-    </header>
-
-    <!-- Main -->
-    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <section class="lg:col-span-2 space-y-4">
-
-        <!-- Hero -->
-        <div class="p-4 rounded-xl glass shadow">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-bold">Chào mừng đến với trang lớp</h2>
-              <p class="text-sm text-gray-600 mt-1">Quản lý thông báo, tài nguyên và bài tập. Double-click header để thêm thông báo nhanh.</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm text-gray-500">Trạng thái</p>
-              <p id="status" class="font-medium text-green-600">Hoạt động</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Announcements -->
-        <div id="announcements" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-
-        <!-- Resources -->
-        <div class="p-4 rounded-xl glass shadow">
-          <h3 class="font-bold mb-3">Tài nguyên</h3>
-          <ul id="resources-list" class="space-y-2"></ul>
-
-          <form id="resource-form" class="mt-4 flex gap-2">
-            <input id="resource-title" placeholder="Tiêu đề" class="flex-1 px-3 py-2 border rounded" />
-            <input id="resource-link" placeholder="Link (http...)" class="w-48 px-3 py-2 border rounded" />
-            <button class="px-3 py-2 bg-indigo-600 text-white rounded">Thêm</button>
-          </form>
-        </div>
-      </section>
-
-      <aside class="space-y-4">
-        <div class="p-4 rounded-xl glass shadow">
-          <h3 class="font-bold mb-3">Danh sách học sinh</h3>
-          <ul id="students-list" class="space-y-2 max-h-64 overflow-auto"></ul>
-
-          <form id="student-form" class="mt-3 flex gap-2">
-            <input id="student-name" placeholder="Tên học sinh" class="flex-1 px-3 py-2 border rounded" />
-            <button class="px-3 py-2 bg-green-600 text-white rounded">Thêm</button>
-          </form>
-        </div>
-
-        <div class="p-4 rounded-xl glass shadow">
-          <h3 class="font-bold mb-3">Bài tập</h3>
-          <ul id="assignments-list" class="space-y-2"></ul>
-
-          <form id="assign-form" class="mt-3 flex flex-col gap-2">
-            <input id="assign-title" placeholder="Tiêu đề bài tập" class="px-3 py-2 border rounded" />
-            <input id="assign-due" type="date" class="px-3 py-2 border rounded" />
-            <div class="flex gap-2">
-              <button class="px-3 py-2 bg-indigo-600 text-white rounded">Thêm</button>
-              <button id="clear-data" type="button" class="px-3 py-2 border rounded">Xoá dữ liệu</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="p-4 rounded-xl glass shadow text-sm text-gray-600">
-          <h4 class="font-bold mb-2">Mẹo</h4>
-          <ul class="list-disc list-inside space-y-1">
-            <li>Mọi thay đổi lưu trên trình duyệt (localStorage).</li>
-            <li>Dùng Export để sao lưu, Import để khôi phục.</li>
-            <li>Đưa file này lên hosting tĩnh để chạy online cho cả lớp.</li>
-          </ul>
-        </div>
-      </aside>
-    </main>
-  </div>
-
-  <!-- Templates (hidden) -->
-  <template id="announcement-tpl">
-    <article class="p-4 rounded-lg bg-white shadow">
-      <h3 class="font-bold">{{title}}</h3>
-      <p class="text-sm text-gray-700 mt-2">{{text}}</p>
-      <div class="mt-3 text-right">
-        <button class="detail-btn text-sm px-2 py-1 border rounded">Chi tiết</button>
-      </div>
-    </article>
-  </template>
-
-  <!-- Firebase config: (Đã chèn config bạn cung cấp) -->
-  <script>
-    // ---------- FIREBASE CONFIG (THẬT) ----------
+    // ⚡ Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCdui3CboK7OQxad__E-IuA9vSg7MtriCM",
       authDomain: "projectclass-81492.firebaseapp.com",
       projectId: "projectclass-81492",
-      storageBucket: "projectclass-81492.firebasestorage.app",
+      storageBucket: "projectclass-81492.appspot.com",
       messagingSenderId: "396285528683",
       appId: "1:396285528683:web:d0aea5d1fb08d85101ff2e",
       measurementId: "G-33W7MS5JDB"
     };
-    // init firebase (compat)
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-  </script>
 
-  <!-- App logic -->
-  <script>
-    // ---------- DEFAULT / TÙY CHỈNH -----------
-    // Bạn có thể thay đổi nhanh tại đây:
-    const CONFIG = {
-      className: 'Lớp 10A1 – Project Class',
-      teacher: 'Thầy Nguyễn Minh',
-      logoLetter: '10A1',
-      themeDefault: 'light' // 'light' hoặc 'dark'
-    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-    // ---------- UTILS ----------
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const escapeHtml = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]||c));
-    const nowId = ()=> Date.now() + Math.floor(Math.random()*1000);
+    const TEACHER_CODE = "TEACHER123"; // Mã giáo viên
 
-    // ---------- DEFAULT STATE ----------
-    const DEFAULT = {
-      className: CONFIG.className,
-      teacher: CONFIG.teacher,
-      announcements: [
-        { id: nowId(), title: 'Lịch thi thử', text: 'Thi thử vào thứ 6 tuần sau — mang bút và máy tính bỏ túi.' }
-      ],
-      students: [
-        { id: nowId(), name: 'An', present: true },
-        { id: nowId(), name: 'Bình', present: false }
-      ],
-      resources: [
-        { id: nowId(), title: 'Bài giảng 01 - Hệ số', link: '#' }
-      ],
-      assignments: [
-        { id: nowId(), title: 'Bài tập tuần 3', due: '2025-10-10', status: 'Chưa nộp' }
-      ]
-    };
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        console.log("Đăng nhập:", user.email);
 
-    // ---------- STATE (load from localStorage if exists) ----------
-    let state = (function load(){ try{ const s = localStorage.getItem('classroom_state'); return s? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT)); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }})();
+        const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
 
-    // ---------- DOM refs ----------
-    const classNameEl = $('#class-name');
-    const teacherEl = $('#teacher');
-    const logoEl = $('#logo');
-    const announcementsEl = $('#announcements');
-    const studentsListEl = $('#students-list');
-    const resourcesListEl = $('#resources-list');
-    const assignmentsListEl = $('#assignments-list');
-
-    // initial UI setup (customizable)
-    function initUI() {
-      document.body.setAttribute('data-theme', CONFIG.themeDefault);
-      classNameEl.textContent = state.className;
-      teacherEl.textContent = 'Giáo viên: ' + state.teacher;
-      // logo letter
-      document.getElementById('logo-letter').textContent = CONFIG.logoLetter || state.className.charAt(0);
-    }
-
-    // ---------- RENDER ----------
-    function render() {
-      document.title = state.className + ' — Trang Lớp';
-      classNameEl.textContent = state.className;
-      teacherEl.textContent = 'Giáo viên: ' + state.teacher;
-
-      // announcements
-      announcementsEl.innerHTML = '';
-      state.announcements.slice().reverse().forEach(a => {
-        const card = document.createElement('div');
-        card.className = 'p-4 rounded-lg bg-white shadow';
-        card.innerHTML = `<h3 class="font-bold">${escapeHtml(a.title)}</h3>
-                          <p class="text-sm text-gray-700 mt-2">${escapeHtml(a.text)}</p>
-                          <div class="mt-3 text-right">
-                            <button data-id="${a.id}" class="del-ann text-sm px-2 py-1 border rounded">Xoá</button>
-                          </div>`;
-        announcementsEl.appendChild(card);
-      });
-
-      // students
-      studentsListEl.innerHTML = '';
-      state.students.forEach(s => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between';
-        li.innerHTML = `<div class="flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">${escapeHtml(s.name.charAt(0) || '?')}</div>
-                          <div><p class="font-medium">${escapeHtml(s.name)}</p><p class="text-xs text-gray-500">ID: ${s.id}</p></div>
-                        </div>
-                        <div>
-                          <button data-id="${s.id}" class="toggle-pres text-sm px-3 py-1 rounded ${s.present? 'bg-green-100 border border-green-400' : 'bg-red-50 border border-red-300'}">
-                            ${s.present? 'Có mặt' : 'Vắng'}
-                          </button>
-                        </div>`;
-        studentsListEl.appendChild(li);
-      });
-
-      // resources
-      resourcesListEl.innerHTML = '';
-      state.resources.forEach(r => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between';
-        li.innerHTML = `<div>
-                          <p class="font-medium">${escapeHtml(r.title)}</p>
-                          <p class="text-xs text-gray-500">${escapeHtml(r.link)}</p>
-                        </div>
-                        <div class="flex gap-2">
-                          <a href="${encodeURI(r.link)}" target="_blank" class="px-3 py-1 border rounded text-sm">Mở</a>
-                          <a href="${encodeURI(r.link)}" download class="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Tải</a>
-                          <button data-id="${r.id}" class="del-res px-2 py-1 border rounded">X</button>
-                        </div>`;
-        resourcesListEl.appendChild(li);
-      });
-
-      // assignments
-      assignmentsListEl.innerHTML = '';
-      state.assignments.forEach(a => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between';
-        li.innerHTML = `<div>
-                          <p class="font-medium">${escapeHtml(a.title)}</p>
-                          <p class="text-xs text-gray-500">Hạn: ${escapeHtml(a.due)}</p>
-                        </div>
-                        <div class="text-right">
-                          <p class="text-sm">${escapeHtml(a.status)}</p>
-                          <div class="mt-2 flex gap-2 justify-end">
-                            <button data-id="${a.id}" class="submit-assign text-xs px-2 py-1 border rounded">Đánh dấu</button>
-                            <button data-id="${a.id}" class="del-assign text-xs px-2 py-1 border rounded">X</button>
-                          </div>
-                        </div>`;
-        assignmentsListEl.appendChild(li);
-      });
-
-      wire(); // attach events
-      save();
-    }
-
-    // ---------- wire event handlers (delegated small) ----------
-    function wire(){
-      $$('.toggle-pres').forEach(btn => btn.onclick = (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        state.students = state.students.map(s => s.id === id ? {...s, present: !s.present} : s);
-        render();
-      });
-      $$('.del-ann').forEach(btn => btn.onclick = (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        state.announcements = state.announcements.filter(a => a.id !== id);
-        render();
-      });
-      $$('.del-res').forEach(btn => btn.onclick = (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        state.resources = state.resources.filter(r => r.id !== id);
-        render();
-      });
-      $$('.submit-assign').forEach(btn => btn.onclick = (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        state.assignments = state.assignments.map(a => a.id===id ? {...a, status: a.status==='Đã nộp' ? 'Chưa nộp' : 'Đã nộp'} : a);
-        render();
-      });
-      $$('.del-assign').forEach(btn => btn.onclick = (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        state.assignments = state.assignments.filter(a=>a.id!==id);
-        render();
-      });
-    }
-
-    // ---------- Forms ----------
-    $('#resource-form').onsubmit = (e) => {
-      e.preventDefault();
-      const title = $('#resource-title').value.trim();
-      const link = $('#resource-link').value.trim() || '#';
-      if(!title) return alert('Nhập tiêu đề');
-      state.resources.push({ id: nowId(), title, link });
-      $('#resource-title').value=''; $('#resource-link').value='';
-      render();
-    };
-
-    $('#student-form').onsubmit = (e) => {
-      e.preventDefault();
-      const name = $('#student-name').value.trim();
-      if(!name) return alert('Nhập tên học sinh');
-      state.students.push({ id: nowId(), name, present: false });
-      $('#student-name').value='';
-      render();
-    };
-
-    $('#assign-form').onsubmit = (e) => {
-      e.preventDefault();
-      const title = $('#assign-title').value.trim();
-      const due = $('#assign-due').value;
-      if(!title || !due) return alert('Nhập tiêu đề và hạn');
-      state.assignments.push({ id: nowId(), title, due, status: 'Chưa nộp' });
-      $('#assign-title').value=''; $('#assign-due').value='';
-      render();
-    };
-
-    $('#clear-data').onclick = () => {
-      if(confirm('Xoá toàn bộ dữ liệu?')) {
-        localStorage.removeItem('classroom_state');
-        state = JSON.parse(JSON.stringify(DEFAULT));
-        render();
-      }
-    };
-
-    // double-click header quick add announcement
-    document.querySelector('header').ondblclick = () => {
-      const title = prompt('Tiêu đề thông báo:');
-      if(!title) return;
-      const text = prompt('Nội dung:') || '';
-      state.announcements.push({ id: nowId(), title, text });
-      render();
-    };
-
-    // ---------- Export / Import JSON ----------
-    $('#export-json').onclick = () => {
-      const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (state.className || 'classroom') + '.json';
-      a.click();
-      setTimeout(()=> URL.revokeObjectURL(url), 5000);
-    };
-
-    $('#import-file').onchange = (e) => {
-      const f = e.target.files[0];
-      if(!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try{
-          const obj = JSON.parse(reader.result);
-          if(confirm('Ghi đè dữ liệu hiện tại bằng nội dung file?')) {
-            state = obj;
-            render();
-          }
-        }catch(err){ alert('File không hợp lệ') }
-      };
-      reader.readAsText(f);
-    };
-
-    // ---------- Export PDF ----------
-    $('#export-pdf').onclick = async () => {
-      try{
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-
-        // render the main container to canvas
-        const el = document.querySelector('main');
-        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const imgWidth = pageWidth - 40; // padding 20
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-
-        doc.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
-        doc.save((state.className||'lop') + '.pdf');
-      }catch(err){
-        console.error(err);
-        alert('Xuất PDF lỗi: ' + (err.message || err));
-      }
-    };
-
-    // ---------- Theme Toggle ----------
-    $('#theme-toggle').onclick = () => {
-      const el = document.body;
-      const cur = el.getAttribute('data-theme') || 'light';
-      const next = cur==='light' ? 'dark' : 'light';
-      el.setAttribute('data-theme', next);
-      if(next==='dark'){
-        document.documentElement.style.backgroundColor = '#0b1220';
-        document.body.classList.add('bg-gray-900');
-        document.body.classList.remove('bg-gray-50');
-      }else{
-        document.body.classList.remove('bg-gray-900');
-        document.body.classList.add('bg-gray-50');
-      }
-    };
-
-    // ---------- Persistence ----------
-    function save(){ try{ localStorage.setItem('classroom_state', JSON.stringify(state)); }catch(e){ console.warn('Cannot save', e); } }
-    // load already handled earlier
-
-    // ---------- Firebase Auth (Google Sign-In) ----------
-    const btnSignIn = $('#btn-signin');
-    const btnSignOut = $('#btn-signout');
-    const userBlock = $('#user-block');
-    const userNameEl = $('#user-name');
-    const userPhotoEl = $('#user-photo');
-    const userEmailEl = $('#user-email');
-
-    btnSignIn.onclick = () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).then(result => {
-        // handled by onAuthStateChanged
-      }).catch(err => {
-        console.error(err);
-        alert('Đăng nhập lỗi: ' + (err.message || err));
-      });
-    };
-
-    btnSignOut.onclick = () => {
-      auth.signOut().then(()=> {
-        // handled by onAuthStateChanged
-      });
-    };
-
-    // observe auth state
-    auth.onAuthStateChanged(user => {
-      if(user){
-        // user is signed in
-        const name = user.displayName || 'Người dùng';
-        const email = user.email || '';
-        const photo = user.photoURL || '';
-
-        userBlock.classList.remove('hidden');
-        btnSignOut.classList.remove('hidden');
-        btnSignIn.classList.add('hidden');
-
-        userNameEl.textContent = name;
-        userEmailEl.textContent = email;
-        if(photo) userPhotoEl.src = photo;
-        else userPhotoEl.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=0D8ABC&color=fff';
-
-        // optionally store logged-in info (not sensitive) in local state
-        state.lastUser = { uid: user.uid, name, email, photo };
-        save();
-      } else {
-        // signed out
-        userBlock.classList.add('hidden');
-        btnSignOut.classList.add('hidden');
-        btnSignIn.classList.remove('hidden');
-        userNameEl.textContent = '';
-        userPhotoEl.src = '';
-        userEmailEl.textContent = '';
-
-        if(state.lastUser) { delete state.lastUser; save(); }
+        if (code === TEACHER_CODE) {
+          // Lưu vào collection teachers
+          await setDoc(doc(db, "teachers", user.uid), {
+            email: user.email,
+            role: "teacher"
+          });
+          window.location.href = "https://teachers-x4og.onrender.com/";
+        } else {
+          // Lưu vào collection students
+          await setDoc(doc(db, "students", user.uid), {
+            email: user.email,
+            role: "student"
+          });
+          window.location.href = "https://students-6fym.onrender.com/";
+        }
+      } catch (err) {
+        console.error("Lỗi đăng nhập:", err);
+        alert("Có lỗi xảy ra: " + err.message);
       }
     });
-
-    // ---------- Init ----------
-    initUI();
-    render();
-
-    // ---------- Small helpful shortcut: allow updating class metadata quickly ----------
-    // To change class name, teacher, logo, run in console:
-    // setClassMeta({ className:'...', teacher:'...', logoLetter:'A1' }); render();
-    window.setClassMeta = (meta) => {
-      if(meta.className) state.className = meta.className;
-      if(meta.teacher) state.teacher = meta.teacher;
-      if(meta.logoLetter) document.getElementById('logo-letter').textContent = meta.logoLetter;
-      save();
-      render();
-    };
-
   </script>
 </body>
 </html>
