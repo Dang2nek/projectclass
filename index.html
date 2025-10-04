@@ -6,19 +6,74 @@
 <title>Class Login</title>
 <style>
 body, html {
-  margin:0; padding:0; overflow:hidden; font-family:'Poppins', sans-serif; height:100vh; background:black;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  font-family:'Poppins', sans-serif;
+  height:100vh;
+  background:black;
 }
 .login-container {
-  position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-  background: rgba(255,255,255,0.95); padding:40px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  text-align:center; z-index:10; transition: opacity 0.5s ease;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  background: rgba(255,255,255,0.95);
+  padding:40px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  text-align:center;
+  z-index:10;
+  transition: opacity 0.5s ease;
 }
 .login-container h1 { margin-bottom:24px; color:#333; }
 input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
 button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
 button:hover { background:#45a049; }
 #error { color:red; margin-top:10px; }
-#warpCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; display:none; }
+#warpCanvas {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:9999;
+  display:none;
+}
+
+/* Ô nhập mã bí mật */
+#secretInput {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  display: none;
+  z-index: 99999;
+  box-shadow: 0 0 20px cyan;
+  text-align: center;
+}
+#secretInput input {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+}
+#secretInput button {
+  padding: 10px 20px;
+  margin-left: 10px;
+  background: cyan;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+#secretInput button:hover {
+  background: #00ffffa0;
+}
 </style>
 </head>
 <body>
@@ -30,6 +85,12 @@ button:hover { background:#45a049; }
   <input type="email" id="email" placeholder="Email">
   <button id="loginBtn">Login with Google</button>
   <div id="error"></div>
+</div>
+
+<!-- 🔒 Khung nhập mã bí mật -->
+<div id="secretInput">
+  <input type="password" id="codeBox" placeholder="Nhập mã...">
+  <button onclick="checkCode()">OK</button>
 </div>
 
 <script type="module">
@@ -55,6 +116,7 @@ const provider = new GoogleAuthProvider();
 // Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
+
 function warpTransition(targetURL) {
   warpCanvas.style.display = "block";
   let w = warpCanvas.width = window.innerWidth;
@@ -66,16 +128,22 @@ function warpTransition(targetURL) {
   function draw() {
     ctx.fillStyle="rgba(0,0,0,0.2)";
     ctx.fillRect(0,0,w,h);
-    for(let s of stars){
+    for(let i=0;i<stars.length;i++){
+      let s = stars[i];
       s.z -= 25;
       if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
       let k = 800/s.z;
       let px = s.x*k+w/2;
       let py = s.y*k+h/2;
       const size = s.size*k/5;
-      ctx.strokeStyle = s.color; ctx.lineWidth = size;
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - s.x*0.1, py - s.y*0.1); ctx.stroke();
-      ctx.fillStyle=s.color; ctx.fillRect(px, py, size, size);
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
+      ctx.stroke();
+      ctx.fillStyle=s.color;
+      ctx.fillRect(px, py, size, size);
     }
     requestAnimationFrame(draw);
   }
@@ -84,7 +152,7 @@ function warpTransition(targetURL) {
   setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
-// 🔹 Login function
+// 🔹 Login
 async function login(){
   const errorDiv = document.getElementById("error");
   errorDiv.textContent="";
@@ -92,33 +160,52 @@ async function login(){
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Document IDs = displayName
-    const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
-    const studentDoc = await getDoc(doc(db,"students",user.displayName));
+    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
+    const studentDoc = await getDoc(doc(db,"students",user.uid));
 
     let role = "student";
 
-    // Lần đầu login hỏi mã
     if(!teacherDoc.exists() && !studentDoc.exists()){
       let codeInput = prompt("Hãy nhập mã giáo viên, bỏ trống nếu là học sinh:");
-      if(codeInput==="TOF7A1") role="teacher";
+      if(codeInput && codeInput.trim() === "GV123"){
+        role="teacher";
+      }
     } else if(teacherDoc.exists()){
       role="teacher";
     }
 
-    // Tạo document nếu chưa có
-    if(!teacherDoc.exists() && role==="teacher"){
+    if(role==="teacher"){
       await setDoc(doc(db,"teachers",user.displayName), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(!studentDoc.exists()){
+    } else {
       await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
-    // Fade form + warp
     document.getElementById("loginBox").style.opacity="0";
     warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
 
   }catch(e){ console.error(e); errorDiv.textContent="Đăng nhập thất bại!"; }
 }
+
+// 🔹 Ẩn mã bí mật
+const secretInput = document.getElementById("secretInput");
+const codeBox = document.getElementById("codeBox");
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && e.key === "m") {
+    e.preventDefault();
+    secretInput.style.display = secretInput.style.display === "none" ? "block" : "none";
+    codeBox.focus();
+  }
+});
+
+window.checkCode = function() {
+  if (codeBox.value.trim() === "C00lKID") {
+    warpTransition("https://example.com/secret"); // 🔹 Thay link bí mật của bạn tại đây
+  } else {
+    codeBox.value = "";
+    codeBox.placeholder = "Sai mã!";
+  }
+};
 
 document.getElementById("loginBtn").addEventListener("click", login);
 </script>
