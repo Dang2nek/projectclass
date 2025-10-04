@@ -1,157 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Login</title>
+<title>Class Web</title>
 <style>
-body, html {
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  font-family:'Poppins', sans-serif;
-  height:100vh;
-  background:black;
-}
-.login-container {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  background: rgba(255,255,255,0.95);
-  padding:40px;
-  border-radius:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  text-align:center;
-  z-index:10;
-  transition: opacity 0.5s ease;
-}
-.login-container h1 { margin-bottom:24px; color:#333; }
-input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
-button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
-button:hover { background:#45a049; }
-#error { color:red; margin-top:10px; }
-#warpCanvas {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  z-index:9999;
-  display:none;
-}
+  body { font-family: sans-serif; background: #111; color: #fff; text-align:center; padding:20px; }
+  #login, #teacherPanel, #studentPanel { display:none; }
+  input { padding:5px; margin:5px; }
+  button { padding:5px 10px; margin:5px; cursor:pointer; }
+  #tunnel { position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:1000; display:none; }
+  #tunnel div { width:10px; height:10px; border-radius:50%; background:cyan; position:absolute; animation:tunnelAnim 1s linear infinite; }
+  @keyframes tunnelAnim { from {transform:scale(0) translateZ(0);} to {transform:scale(20) translateZ(500px);} }
 </style>
 </head>
 <body>
 
-<canvas id="warpCanvas"></canvas>
+<h1>Class Web</h1>
 
-<div class="login-container" id="loginBox">
-  <h1>Class Login</h1>
-  <input type="email" id="email" placeholder="Email">
-  <button id="loginBtn">Login with Google</button>
-  <div id="error"></div>
+<div id="login">
+  <h2>Login</h2>
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <select id="role">
+    <option value="student">Student</option>
+    <option value="teacher">Teacher</option>
+  </select><br>
+  <button onclick="loginUser()">Login / Register</button>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+<div id="teacherPanel">
+  <h2>Teacher Panel</h2>
+  <input type="text" id="taskTitle" placeholder="Task Title">
+  <input type="text" id="taskDesc" placeholder="Task Description">
+  <button onclick="addTask()">Add Task</button>
+  <h3>Tasks:</h3>
+  <ul id="taskList"></ul>
+</div>
 
-// 🔹 Firebase Config
+<div id="studentPanel">
+  <h2>Student Panel</h2>
+  <h3>Tasks:</h3>
+  <ul id="taskListStudent"></ul>
+</div>
+
+<div id="tunnel"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
   authDomain: "classweb-11389.firebaseapp.com",
   projectId: "classweb-11389",
-  storageBucket: "classweb-11389.firebasestorage.app",
+  storageBucket: "classweb-11389.appspot.com",
   messagingSenderId: "91367336185",
-  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-  measurementId: "G-7123YZQKWV"
+  appId: "1:91367336185:web:30a78cfe10e459b0605a28"
 };
+
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const auth = getAuth();
+const db = getFirestore();
 
-// Warp effect
-const warpCanvas = document.getElementById("warpCanvas");
-const ctx = warpCanvas.getContext("2d");
+document.getElementById('login').style.display = 'block';
 
-function warpTransition(targetURL) {
-  warpCanvas.style.display = "block";
-  let w = warpCanvas.width = window.innerWidth;
-  let h = warpCanvas.height = window.innerHeight;
-  let stars = [];
-  for(let i=0;i<1200;i++){
-    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
+async function loginUser() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const role = document.getElementById('role').value;
+
+  let user;
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    user = userCredential.user;
+  } catch (e) {
+    // Nếu không tồn tại thì tạo
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    user = userCredential.user;
   }
-  function draw() {
-    ctx.fillStyle="rgba(0,0,0,0.2)";
-    ctx.fillRect(0,0,w,h);
-    for(let i=0;i<stars.length;i++){
-      let s = stars[i];
-      s.z -= 25;
-      if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
-      let k = 800/s.z;
-      let px = s.x*k+w/2;
-      let py = s.y*k+h/2;
-      const size = s.size*k/5;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = size;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
-      ctx.stroke();
-      ctx.fillStyle=s.color;
-      ctx.fillRect(px, py, size, size);
-    }
-    requestAnimationFrame(draw);
+
+  // Tạo doc lần đầu
+  const col = role === "teacher" ? "teachers" : "students";
+  const userDocRef = doc(db, col, user.uid);
+  const userDoc = await getDoc(userDocRef);
+  if (!userDoc.exists()) {
+    await setDoc(userDocRef, { name: email.split('@')[0], role, createdAt: new Date() });
   }
-  draw();
-  window.addEventListener("resize",()=>{ w=warpCanvas.width=window.innerWidth; h=warpCanvas.height=window.innerHeight; });
-  setTimeout(()=>{ window.location.href=targetURL; },2500);
+
+  // Hiệu ứng tunnel trước khi chuyển panel
+  showTunnel(role);
 }
 
-// 🔹 Login
-async function login(){
-  const errorDiv = document.getElementById("error");
-  errorDiv.textContent="";
-  try{
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Đọc cả teachers và students
-    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
-    const studentDoc = await getDoc(doc(db,"students",user.uid));
-
-    let role = "student";
-
-    // Nếu lần đầu đăng nhập (chưa có doc)
-    if(!teacherDoc.exists() && !studentDoc.exists()){
-      let codeInput = prompt("Nhập mã giáo viên:");
-      if(codeInput==="GV123"){
-        role="teacher";
-      }
-    } else if(teacherDoc.exists()){
-      role="teacher";
+function showTunnel(role) {
+  const tunnel = document.getElementById('tunnel');
+  tunnel.style.display = 'block';
+  for(let i=0;i<50;i++){
+    const dot = document.createElement('div');
+    dot.style.top = Math.random()*100 + '%';
+    dot.style.left = Math.random()*100 + '%';
+    dot.style.animationDelay = Math.random()+'s';
+    tunnel.appendChild(dot);
+  }
+  setTimeout(()=>{
+    tunnel.innerHTML='';
+    tunnel.style.display='none';
+    if(role==='teacher'){
+      document.getElementById('login').style.display='none';
+      document.getElementById('teacherPanel').style.display='block';
+      loadTasks('teacher');
+    } else {
+      document.getElementById('login').style.display='none';
+      document.getElementById('studentPanel').style.display='block';
+      loadTasks('student');
     }
-
-    // Tạo document nếu chưa có
-    if(!teacherDoc.exists() && role==="teacher"){
-      await setDoc(doc(db,"teachers",user.uid), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(!studentDoc.exists()){
-      await setDoc(doc(db,"students",user.uid), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
-    }
-
-    // Fade out form và warp
-    document.getElementById("loginBox").style.opacity="0";
-    warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
-
-  }catch(e){ console.error(e); errorDiv.textContent="Đăng nhập thất bại!"; }
+  },1500);
 }
 
-document.getElementById("loginBtn").addEventListener("click", login);
+async function addTask() {
+  const title = document.getElementById('taskTitle').value;
+  const desc = document.getElementById('taskDesc').value;
+  const user = auth.currentUser;
+  if(!user) return;
+  await addDoc(collection(db, "tasks"), { title, description: desc, createdBy: user.uid, createdAt: new Date() });
+  loadTasks('teacher');
+}
+
+async function loadTasks(role){
+  const taskList = role==='teacher' ? document.getElementById('taskList') : document.getElementById('taskListStudent');
+  taskList.innerHTML='';
+  const querySnapshot = await getDocs(collection(db, "tasks"));
+  querySnapshot.forEach(docSnap=>{
+    const li = document.createElement('li');
+    li.textContent = docSnap.data().title + " - " + docSnap.data().description;
+    taskList.appendChild(li);
+  });
+}
 </script>
-
 </body>
 </html>
