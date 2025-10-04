@@ -3,17 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <title>Đăng nhập lớp học</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset cơ bản */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+      color: #333;
+    }
+
+    .container {
+      background: white;
+      padding: 40px 60px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+      font-weight: 700;
+      color: #4A4A4A;
+    }
+
+    #loginBtn {
+      padding: 15px 25px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #36D1DC, #5B86E5);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #loginBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    p {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-  <h2>Đăng nhập lớp học</h2>
-  <button id="loginBtn">Đăng nhập với Google</button>
+  <div class="container">
+    <h2>Chào mừng đến lớp học</h2>
+    <button id="loginBtn">Đăng nhập với Google</button>
+    <p>Nhập mã giáo viên nếu bạn là giáo viên</p>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-    // ⚡ Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCdui3CboK7OQxad__E-IuA9vSg7MtriCM",
       authDomain: "projectclass-81492.firebaseapp.com",
@@ -24,36 +79,49 @@
       measurementId: "G-33W7MS5JDB"
     };
 
+    const TEACHER_CODE = "TEACHER123";
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    const TEACHER_CODE = "TEACHER123"; // Mã giáo viên
+    const loginBtn = document.getElementById("loginBtn");
 
-    document.getElementById("loginBtn").addEventListener("click", async () => {
+    async function askCodeAndRedirect(user) {
+      const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
+
+      if (code === TEACHER_CODE) {
+        await setDoc(doc(db, "teachers", user.uid), {
+          email: user.email,
+          role: "teacher"
+        });
+        alert("Xin chào giáo viên!");
+        window.location.href = "https://teachers-x4og.onrender.com/";
+      } else {
+        await setDoc(doc(db, "students", user.uid), {
+          email: user.email,
+          role: "student"
+        });
+        alert("Xin chào học sinh!");
+        window.location.href = "https://students-6fym.onrender.com/";
+      }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        loginBtn.style.display = "none";
+        await askCodeAndRedirect(user);
+      } else {
+        loginBtn.style.display = "inline-block";
+      }
+    });
+
+    loginBtn.addEventListener("click", async () => {
       try {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
-        console.log("Đăng nhập:", user.email);
-
-        const code = prompt("Nếu bạn là giáo viên, nhập mã bí mật (bỏ trống nếu là học sinh):");
-
-        if (code === TEACHER_CODE) {
-          // Lưu vào collection teachers
-          await setDoc(doc(db, "teachers", user.uid), {
-            email: user.email,
-            role: "teacher"
-          });
-          window.location.href = "https://teachers-x4og.onrender.com/";
-        } else {
-          // Lưu vào collection students
-          await setDoc(doc(db, "students", user.uid), {
-            email: user.email,
-            role: "student"
-          });
-          window.location.href = "https://students-6fym.onrender.com/";
-        }
+        await askCodeAndRedirect(user);
       } catch (err) {
         console.error("Lỗi đăng nhập:", err);
         alert("Có lỗi xảy ra: " + err.message);
