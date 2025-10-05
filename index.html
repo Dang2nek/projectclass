@@ -5,222 +5,269 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C00lKID Login Portal</title>
 <style>
+  /* Nền hyperspace tunnel */
   body {
-    background: radial-gradient(circle at center, #200 0%, #000 100%);
-    color: white;
-    font-family: 'Segoe UI', sans-serif;
-    text-align: center;
+    margin: 0;
     overflow: hidden;
+    background: black;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
   }
-  h1 { 
-    margin-top: 100px; 
-    font-size: 3em; 
-    text-shadow: 0 0 20px red; 
-  }
-  button {
-    background: red; 
-    border: none; 
-    padding: 15px 30px;
-    color: white; 
-    font-size: 1.2em; 
-    border-radius: 12px;
-    cursor: pointer; 
-    transition: all .3s;
-  }
-  button:hover { 
-    box-shadow: 0 0 15px red; 
-    transform: scale(1.05); 
-  }
-  #error { color: #ff8080; margin-top: 20px; font-size: 1.1em; }
-
-  /* popup nhập mã */
-  #secretInput, #teacherCodeInput {
-    display: none; 
+  canvas { 
     position: fixed; 
-    top: 50%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.9); 
-    padding: 30px; 
+    top: 0; left: 0; 
+    z-index: 0; 
+  }
+
+  /* Khung login */
+  #loginBox {
+    position: relative;
+    z-index: 1;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid white;
+    border-radius: 20px;
+    padding: 50px 80px;
+    text-align: center;
+    box-shadow: 0 0 20px white;
+  }
+
+  h1 {
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+    margin-bottom: 30px;
+    font-size: 2.5em;
+  }
+
+  button {
+    background: #00ffcc;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2em;
     border-radius: 12px;
-    box-shadow: 0 0 20px red; 
+    cursor: pointer;
+    box-shadow: 0 0 15px #00ffcc;
+    transition: all 0.3s;
+    color: black;
+  }
+  button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc;
+  }
+
+  /* Popup nhập mã */
+  #secretInput, #teacherCodeInput {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px #00ffff;
     z-index: 9999;
+    text-align: center;
   }
   input {
-    padding: 10px; 
-    border-radius: 8px; 
-    border: none; 
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
     width: 80%;
-    margin-bottom: 10px; 
+    margin-bottom: 10px;
     text-align: center;
   }
-  #glitch {
-    position: fixed; 
-    inset: 0; 
-    background: red;
-    mix-blend-mode: screen; 
-    opacity: 0; 
-    pointer-events: none;
-    animation: none;
-  }
-  @keyframes glitch {
-    0%,100% {opacity: 0; transform: none;}
-    10%,30%,50%,70%,90% {opacity: .5; transform: translateX(-5px) rotate(-1deg) scale(1.02);}
-    20%,40%,60%,80% {opacity: .5; transform: translateX(5px) rotate(1deg) scale(0.98);}
-  }
 
-  /* Warp effect */
-  @keyframes warp {
-    0% { transform: scale(1) rotate(0deg) skew(0deg,0deg); }
-    10% { transform: scale(1.05) rotate(2deg) skew(2deg,1deg); }
-    20% { transform: scale(0.95) rotate(-2deg) skew(-2deg,-1deg); }
-    30% { transform: scale(1.03) rotate(1deg) skew(1deg,2deg); }
-    40% { transform: scale(0.97) rotate(-1deg) skew(-1deg,-2deg); }
-    50% { transform: scale(1.02) rotate(0deg) skew(0deg,1deg); }
-    60% { transform: scale(0.98) rotate(-2deg) skew(2deg,-1deg); }
-    70% { transform: scale(1.01) rotate(1deg) skew(-2deg,2deg); }
-    80% { transform: scale(0.99) rotate(-1deg) skew(1deg,-2deg); }
-    90% { transform: scale(1.04) rotate(2deg) skew(2deg,0deg); }
-    100% { transform: scale(1) rotate(0deg) skew(0deg,0deg); }
-  }
-
-  body.warp {
-    animation: warp 0.1s infinite;
-  }
 </style>
 </head>
 <body>
-  <h1>Welcome to C00lKID GUI</h1>
-  <button id="googleLogin">Class Login</button>
-  <div id="error"></div>
 
-  <!-- popup nhập mã ẩn -->
-  <div id="secretInput">
-    <h2>Nhập mã truy cập</h2>
-    <input type="password" id="secretCode" placeholder="Nhập mã...">
-    <br><button onclick="checkSecret()">OK</button>
-  </div>
+<canvas id="tunnel"></canvas>
 
-  <!-- popup nhập mã giáo viên -->
-  <div id="teacherCodeInput">
-    <h2>Hãy nhập mã giáo viên<br><small>(Bỏ trống nếu là học sinh)</small></h2>
-    <input type="password" id="teacherCode" placeholder="Mã giáo viên...">
-    <br><button onclick="saveTeacherCode()">Xác nhận</button>
-  </div>
+<div id="loginBox">
+  <h1>Class Login</h1>
+  <button id="googleLogin">Login</button>
+</div>
 
-  <div id="glitch"></div>
-  <audio id="evilLaugh" src="https://files.catbox.moe/z9v5ho.mp3"></audio>
+<!-- popup nhập mã ẩn -->
+<div id="secretInput">
+  <h2>Nhập mã truy cập</h2>
+  <input type="password" id="secretCode" placeholder="Nhập mã...">
+  <br><button onclick="checkSecret()">OK</button>
+</div>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<!-- popup nhập mã giáo viên -->
+<div id="teacherCodeInput">
+  <h2>Nhập mã giáo viên (Bỏ trống nếu là học sinh)</h2>
+  <input type="password" id="teacherCode" placeholder="Mã giáo viên...">
+  <br><button onclick="saveTeacherCode()">Xác nhận</button>
+</div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-      authDomain: "classweb-11389.firebaseapp.com",
-      projectId: "classweb-11389",
-      storageBucket: "classweb-11389.firebasestorage.app",
-      messagingSenderId: "91367336185",
-      appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-      measurementId: "G-7123YZQKWV"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+<div id="glitch"></div>
+<audio id="evilLaugh" src="https://files.catbox.moe/z9v5ho.mp3"></audio>
 
-    const errorDiv = document.getElementById("error");
-    const teacherPopup = document.getElementById("teacherCodeInput");
-    const glitch = document.getElementById("glitch");
-    const laugh = document.getElementById("evilLaugh");
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    document.getElementById("googleLogin").onclick = googleLogin;
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+  authDomain: "classweb-11389.firebaseapp.com",
+  projectId: "classweb-11389",
+  storageBucket: "classweb-11389.firebasestorage.app",
+  messagingSenderId: "91367336185",
+  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+  measurementId: "G-7123YZQKWV"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-    async function googleLogin() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      try {
-        const result = await auth.signInWithPopup(provider);
-        const user = result.user;
-        const name = user.displayName;
+const errorDiv = document.getElementById("error");
+const teacherPopup = document.getElementById("teacherCodeInput");
+const glitch = document.getElementById("glitch");
+const laugh = document.getElementById("evilLaugh");
 
-        const teacherDoc = await db.collection("teachers").doc(name).get();
-        const studentDoc = await db.collection("students").doc(name).get();
+document.getElementById("googleLogin").onclick = googleLogin;
 
-        if (!teacherDoc.exists && !studentDoc.exists) {
-          teacherPopup.style.display = "block";
-        } else {
-          redirectBasedOnRole(teacherDoc.exists);
-        }
-      } catch (e) {
-        console.error(e);
-        errorDiv.textContent = "Đăng nhập thất bại!";
-      }
+async function googleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user = result.user;
+    const name = user.displayName;
+
+    const teacherDoc = await db.collection("teachers").doc(name).get();
+    const studentDoc = await db.collection("students").doc(name).get();
+
+    if (!teacherDoc.exists && !studentDoc.exists) {
+      teacherPopup.style.display = "block";
+    } else {
+      redirectBasedOnRole(teacherDoc.exists);
     }
+  } catch (e) {
+    console.error(e);
+    errorDiv.textContent = "Đăng nhập thất bại!";
+  }
+}
 
-    async function saveTeacherCode() {
-      const user = auth.currentUser;
-      const name = user.displayName;
-      const code = document.getElementById("teacherCode").value.trim();
+async function saveTeacherCode() {
+  const user = auth.currentUser;
+  const name = user.displayName;
+  const code = document.getElementById("teacherCode").value.trim();
 
-      try {
-        if (code === "") {
-          await db.collection("students").doc(name).set({ name, role: "student" });
-          redirectBasedOnRole(false);
-        } else {
-          await db.collection("teachers").doc(name).set({ name, role: "teacher", code });
-          redirectBasedOnRole(true);
-        }
-      } catch (e) {
-        console.error(e);
-        errorDiv.textContent = "Lỗi lưu thông tin người dùng!";
-      }
+  try {
+    if (code === "") {
+      await db.collection("students").doc(name).set({ name, role: "student" });
+      redirectBasedOnRole(false);
+    } else {
+      await db.collection("teachers").doc(name).set({ name, role: "teacher", code });
+      redirectBasedOnRole(true);
     }
+  } catch (e) {
+    console.error(e);
+    errorDiv.textContent = "Lỗi lưu thông tin người dùng!";
+  }
+}
 
-    function redirectBasedOnRole(isTeacher) {
-      const dest = isTeacher
-        ? "https://teachers-x4og.onrender.com/"
-        : "https://students-6fym.onrender.com/";
-      window.location.href = dest;
+function redirectBasedOnRole(isTeacher) {
+  const dest = isTeacher
+    ? "https://teachers-x4og.onrender.com/"
+    : "https://students-6fym.onrender.com/";
+  window.location.href = dest;
+}
+
+// Secret code popup: Ctrl+M hoặc click 3 lần
+let clickCount = 0;
+const classBtn = document.getElementById("googleLogin");
+classBtn.addEventListener("click", () => {
+  clickCount++;
+  if (clickCount >= 3) {
+    document.getElementById("secretInput").style.display = "block";
+    clickCount = 0;
+  }
+  setTimeout(() => (clickCount = 0), 2000);
+});
+
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key.toLowerCase() === "m") {
+    document.getElementById("secretInput").style.display = "block";
+  }
+});
+
+// Kiểm tra mã ẩn
+function checkSecret() {
+  const code = document.getElementById("secretCode").value.trim();
+  if (code === "C00lKID") {
+    document.getElementById("secretInput").style.display = "none";
+    startGlitch();
+    setTimeout(() => {
+      window.location.href = "https://c00lkidgui.onrender.com/";
+    }, 4000);
+  } else {
+    alert("Sai mã!");
+  }
+}
+
+function startGlitch() {
+  glitch.style.animation = "glitch 0.1s infinite";
+  document.body.classList.add("warp");
+  laugh.play();
+}
+
+// Tạo tunnel space canvas
+const canvas = document.getElementById("tunnel");
+const ctx = canvas.getContext("2d");
+let w = canvas.width = window.innerWidth;
+let h = canvas.height = window.innerHeight;
+
+const stars = [];
+const numStars = 400;
+
+for (let i = 0; i < numStars; i++) {
+  stars.push({
+    x: Math.random()*w - w/2,
+    y: Math.random()*h - h/2,
+    z: Math.random()*w,
+    size: Math.random()*2+1
+  });
+}
+
+function animate() {
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0,0,w,h);
+  ctx.save();
+  ctx.translate(w/2,h/2);
+
+  for (let i=0;i<stars.length;i++){
+    const s = stars[i];
+    s.z -= 10;
+    if(s.z<=0){
+      s.z = w;
+      s.x = Math.random()*w - w/2;
+      s.y = Math.random()*h - h/2;
     }
+    const k = 500 / s.z;
+    const x = s.x*k;
+    const y = s.y*k;
+    const size = s.size*k/2;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x, y, size, size);
+  }
 
-    // Ẩn mã: Ctrl+M hoặc click 3 lần
-    let clickCount = 0;
-    const classBtn = document.getElementById("googleLogin");
-    classBtn.addEventListener("click", () => {
-      clickCount++;
-      if (clickCount >= 3) {
-        document.getElementById("secretInput").style.display = "block";
-        clickCount = 0;
-      }
-      setTimeout(() => (clickCount = 0), 2000);
-    });
+  ctx.restore();
+  requestAnimationFrame(animate);
+}
+animate();
 
-    document.addEventListener("keydown", e => {
-      if (e.ctrlKey && e.key.toLowerCase() === "m") {
-        document.getElementById("secretInput").style.display = "block";
-      }
-    });
+window.addEventListener('resize', () => {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+});
 
-    // Kiểm tra mã ẩn
-    function checkSecret() {
-      const code = document.getElementById("secretCode").value.trim();
-      if (code === "C00lKID") {
-        document.getElementById("secretInput").style.display = "none";
-        startGlitch();
-        setTimeout(() => {
-          window.location.href = "https://c00lkidgui.onrender.com/";
-        }, 4000);
-      } else {
-        alert("Sai mã!");
-      }
-    }
-
-    function startGlitch() {
-      glitch.style.animation = "glitch 0.1s infinite";
-      document.body.classList.add("warp");
-      laugh.play();
-    }
-  </script>
+</script>
 </body>
 </html>
