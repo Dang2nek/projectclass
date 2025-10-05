@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class login portal</title>
+<title>C00lKID Login Portal</title>
 <style>
   body {
     background: radial-gradient(circle at center, #200 0%, #000 100%);
@@ -12,35 +12,80 @@
     text-align: center;
     overflow: hidden;
   }
-  h1 { margin-top: 100px; font-size: 3em; text-shadow: 0 0 20px red; }
-  button {
-    background: red; border: none; padding: 15px 30px;
-    color: white; font-size: 1.2em; border-radius: 12px;
-    cursor: pointer; transition: all .3s;
+  h1 { 
+    margin-top: 100px; 
+    font-size: 3em; 
+    text-shadow: 0 0 20px red; 
   }
-  button:hover { box-shadow: 0 0 15px red; transform: scale(1.05); }
+  button {
+    background: red; 
+    border: none; 
+    padding: 15px 30px;
+    color: white; 
+    font-size: 1.2em; 
+    border-radius: 12px;
+    cursor: pointer; 
+    transition: all .3s;
+  }
+  button:hover { 
+    box-shadow: 0 0 15px red; 
+    transform: scale(1.05); 
+  }
   #error { color: #ff8080; margin-top: 20px; font-size: 1.1em; }
 
   /* popup nhập mã */
   #secretInput, #teacherCodeInput {
-    display: none; position: fixed; top: 50%; left: 50%;
+    display: none; 
+    position: fixed; 
+    top: 50%; 
+    left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.9); padding: 30px; border-radius: 12px;
-    box-shadow: 0 0 20px red; z-index: 9999;
+    background: rgba(0,0,0,0.9); 
+    padding: 30px; 
+    border-radius: 12px;
+    box-shadow: 0 0 20px red; 
+    z-index: 9999;
   }
   input {
-    padding: 10px; border-radius: 8px; border: none; width: 80%;
-    margin-bottom: 10px; text-align: center;
+    padding: 10px; 
+    border-radius: 8px; 
+    border: none; 
+    width: 80%;
+    margin-bottom: 10px; 
+    text-align: center;
   }
   #glitch {
-    position: fixed; inset: 0; background: red;
-    mix-blend-mode: screen; opacity: 0; pointer-events: none;
+    position: fixed; 
+    inset: 0; 
+    background: red;
+    mix-blend-mode: screen; 
+    opacity: 0; 
+    pointer-events: none;
     animation: none;
   }
   @keyframes glitch {
-    0%,100% {opacity: 0;}
-    10%,30%,50%,70%,90% {opacity: .5; transform: translateX(-5px);}
-    20%,40%,60%,80% {opacity: .5; transform: translateX(5px);}
+    0%,100% {opacity: 0; transform: none;}
+    10%,30%,50%,70%,90% {opacity: .5; transform: translateX(-5px) rotate(-1deg) scale(1.02);}
+    20%,40%,60%,80% {opacity: .5; transform: translateX(5px) rotate(1deg) scale(0.98);}
+  }
+
+  /* Warp effect */
+  @keyframes warp {
+    0% { transform: scale(1) rotate(0deg) skew(0deg,0deg); }
+    10% { transform: scale(1.05) rotate(2deg) skew(2deg,1deg); }
+    20% { transform: scale(0.95) rotate(-2deg) skew(-2deg,-1deg); }
+    30% { transform: scale(1.03) rotate(1deg) skew(1deg,2deg); }
+    40% { transform: scale(0.97) rotate(-1deg) skew(-1deg,-2deg); }
+    50% { transform: scale(1.02) rotate(0deg) skew(0deg,1deg); }
+    60% { transform: scale(0.98) rotate(-2deg) skew(2deg,-1deg); }
+    70% { transform: scale(1.01) rotate(1deg) skew(-2deg,2deg); }
+    80% { transform: scale(0.99) rotate(-1deg) skew(1deg,-2deg); }
+    90% { transform: scale(1.04) rotate(2deg) skew(2deg,0deg); }
+    100% { transform: scale(1) rotate(0deg) skew(0deg,0deg); }
+  }
+
+  body.warp {
+    animation: warp 0.1s infinite;
   }
 </style>
 </head>
@@ -72,7 +117,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
       authDomain: "classweb-11389.firebaseapp.com",
@@ -104,7 +148,7 @@
         const studentDoc = await db.collection("students").doc(name).get();
 
         if (!teacherDoc.exists && !studentDoc.exists) {
-          teacherPopup.style.display = "block"; // hỏi mã nếu lần đầu
+          teacherPopup.style.display = "block";
         } else {
           redirectBasedOnRole(teacherDoc.exists);
         }
@@ -135,8 +179,8 @@
 
     function redirectBasedOnRole(isTeacher) {
       const dest = isTeacher
-        ? "https://classwebteacher.onrender.com/"
-        : "https://classwebstudent.onrender.com/";
+        ? "https://teachers-x4og.onrender.com/"
+        : "https://students-6fym.onrender.com/";
       window.location.href = dest;
     }
 
@@ -174,6 +218,7 @@
 
     function startGlitch() {
       glitch.style.animation = "glitch 0.1s infinite";
+      document.body.classList.add("warp");
       laugh.play();
     }
   </script>
