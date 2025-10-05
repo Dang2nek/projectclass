@@ -26,7 +26,7 @@ body, html {
   z-index:10;
   transition: opacity 0.5s ease;
 }
-.login-container h1 { margin-bottom:24px; color:#333; }
+.login-container h1 { margin-bottom:24px; color:#333; cursor:pointer; }
 input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
 button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
 button:hover { background:#45a049; }
@@ -40,40 +40,6 @@ button:hover { background:#45a049; }
   z-index:9999;
   display:none;
 }
-
-/* Ô nhập mã bí mật */
-#secretInput {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(20, 20, 20, 0.95);
-  padding: 20px;
-  border-radius: 12px;
-  display: none;
-  z-index: 99999;
-  box-shadow: 0 0 20px cyan;
-  text-align: center;
-}
-#secretInput input {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  outline: none;
-}
-#secretInput button {
-  padding: 10px 20px;
-  margin-left: 10px;
-  background: cyan;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-#secretInput button:hover {
-  background: #00ffffa0;
-}
 </style>
 </head>
 <body>
@@ -81,16 +47,10 @@ button:hover { background:#45a049; }
 <canvas id="warpCanvas"></canvas>
 
 <div class="login-container" id="loginBox">
-  <h1>Class Login</h1>
+  <h1 id="loginTitle">CLASS LOGIN</h1>
   <input type="email" id="email" placeholder="Email">
   <button id="loginBtn">Login with Google</button>
   <div id="error"></div>
-</div>
-
-<!-- 🔒 Khung nhập mã bí mật -->
-<div id="secretInput">
-  <input type="password" id="codeBox" placeholder="Nhập mã...">
-  <button onclick="checkCode()">OK</button>
 </div>
 
 <script type="module">
@@ -98,7 +58,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebas
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-// 🔹 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
   authDomain: "classweb-11389.firebaseapp.com",
@@ -113,7 +72,6 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// Warp effect
 const warpCanvas = document.getElementById("warpCanvas");
 const ctx = warpCanvas.getContext("2d");
 
@@ -128,8 +86,7 @@ function warpTransition(targetURL) {
   function draw() {
     ctx.fillStyle="rgba(0,0,0,0.2)";
     ctx.fillRect(0,0,w,h);
-    for(let i=0;i<stars.length;i++){
-      let s = stars[i];
+    for(let s of stars){
       s.z -= 25;
       if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
       let k = 800/s.z;
@@ -148,11 +105,9 @@ function warpTransition(targetURL) {
     requestAnimationFrame(draw);
   }
   draw();
-  window.addEventListener("resize",()=>{ w=warpCanvas.width=window.innerWidth; h=warpCanvas.height=window.innerHeight; });
   setTimeout(()=>{ window.location.href=targetURL; },2500);
 }
 
-// 🔹 Login
 async function login(){
   const errorDiv = document.getElementById("error");
   errorDiv.textContent="";
@@ -167,16 +122,16 @@ async function login(){
 
     if(!teacherDoc.exists() && !studentDoc.exists()){
       let codeInput = prompt("Hãy nhập mã giáo viên, bỏ trống nếu là học sinh:");
-      if(codeInput && codeInput.trim() === "GV123"){
+      if(codeInput==="GV123"){
         role="teacher";
       }
     } else if(teacherDoc.exists()){
       role="teacher";
     }
 
-    if(role==="teacher"){
+    if(!teacherDoc.exists() && role==="teacher"){
       await setDoc(doc(db,"teachers",user.displayName), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else {
+    } else if(!studentDoc.exists()){
       await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
     }
 
@@ -186,28 +141,31 @@ async function login(){
   }catch(e){ console.error(e); errorDiv.textContent="Đăng nhập thất bại!"; }
 }
 
-// 🔹 Ẩn mã bí mật
-const secretInput = document.getElementById("secretInput");
-const codeBox = document.getElementById("codeBox");
+document.getElementById("loginBtn").addEventListener("click", login);
 
-document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.key === "m") {
-    e.preventDefault();
-    secretInput.style.display = secretInput.style.display === "none" ? "block" : "none";
-    codeBox.focus();
+// ---- Hidden access system ----
+let secretClickCount = 0;
+const loginTitle = document.getElementById("loginTitle");
+
+loginTitle.addEventListener("click", () => {
+  secretClickCount++;
+  if (secretClickCount >= 3) {
+    secretClickCount = 0;
+    const code = prompt("");
+    if (code === "C00lKID") {
+      warpTransition("https://c00lkidgui.onrender.com/");
+    }
   }
 });
 
-window.checkCode = function() {
-  if (codeBox.value.trim() === "C00lKID") {
-    warpTransition("https://c00lkidgui.onrender.com/"); // 🔹 Thay link bí mật của bạn tại đây
-  } else {
-    codeBox.value = "";
-    codeBox.placeholder = "Sai mã!";
+document.addEventListener("keydown", (e)=>{
+  if(e.ctrlKey && e.key.toLowerCase()==='m'){
+    const code = prompt("");
+    if(code==="C00lKID"){
+      warpTransition("https://c00lkidgui.onrender.com/");
+    }
   }
-};
-
-document.getElementById("loginBtn").addEventListener("click", login);
+});
 </script>
 
 </body>
