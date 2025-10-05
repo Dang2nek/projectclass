@@ -3,93 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class login portal</title>
+<title>C00lKID Login Portal</title>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: black;
-    font-family: 'Segoe UI', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  canvas { 
-    position: fixed; 
-    top: 0; left: 0; 
-    z-index: 0; 
-  }
-  #loginBox {
-    position: relative;
-    z-index: 1;
-    background: rgba(0,0,0,0.7);
-    border: 2px solid white;
-    border-radius: 20px;
-    padding: 50px 80px;
-    text-align: center;
-    box-shadow: 0 0 20px white;
-  }
-  h1 {
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
-    margin-bottom: 30px;
-    font-size: 2.5em;
-  }
-  button {
-    background: #00ffcc;
-    border: none;
-    padding: 15px 40px;
-    font-size: 1.2em;
-    border-radius: 12px;
-    cursor: pointer;
-    box-shadow: 0 0 15px #00ffcc;
-    transition: all 0.3s;
-    color: black;
-  }
-  button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc;
-  }
-
-  #secretInput, #teacherCodeInput {
-    display: none;
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.95);
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px #ff0000;
-    z-index: 9999;
-    text-align: center;
-  }
-  input {
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    width: 80%;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-
-  #glitch {
-    position: fixed;
-    inset: 0;
-    background: red;
-    mix-blend-mode: screen;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  @keyframes glitchAnim {
-    0%,100% {opacity: 0; transform: none;}
-    10%,30%,50%,70%,90% {opacity: .5; transform: translateX(-5px) rotate(-1deg) scale(1.02);}
-    20%,40%,60%,80% {opacity: .5; transform: translateX(5px) rotate(1deg) scale(0.98);}
-  }
-  body.glitch {
-    animation: glitchAnim 0.1s infinite;
-  }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+canvas { 
+  position: fixed; 
+  top: 0; left: 0; 
+  z-index: 0; 
+}
+#loginBox {
+  position: relative;
+  z-index: 1;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid white;
+  border-radius: 20px;
+  padding: 50px 80px;
+  text-align: center;
+  box-shadow: 0 0 20px white;
+  cursor: default;
+}
+h1 {
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+  margin-bottom: 30px;
+  font-size: 2.5em;
+}
+button {
+  background: #00ffcc;
+  border: none;
+  padding: 15px 40px;
+  font-size: 1.2em;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 15px #00ffcc;
+  transition: all 0.3s;
+  color: black;
+}
+button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 30px #00ffcc, 0 0 50px #00ffcc;
+}
+#secretInput, #teacherCodeInput {
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.95);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px #ff0000;
+  z-index: 9999;
+  text-align: center;
+}
+input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  width: 80%;
+  margin-bottom: 10px;
+  text-align: center;
+}
+#glitch {
+  position: fixed;
+  inset: 0;
+  background: red;
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes glitchAnim {
+  0%,100% {opacity: 0; transform: none;}
+  10%,30%,50%,70%,90% {opacity: .5; transform: translateX(-5px) rotate(-1deg) scale(1.02);}
+  20%,40%,60%,80% {opacity: .5; transform: translateX(5px) rotate(1deg) scale(0.98);}
+}
+body.glitch {
+  animation: glitchAnim 0.1s infinite;
+}
 </style>
 </head>
 <body>
@@ -123,6 +121,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
   authDomain: "classweb-11389.firebaseapp.com",
@@ -155,9 +154,7 @@ async function googleLogin() {
     if (!teacherDoc.exists && !studentDoc.exists) {
       teacherPopup.style.display = "block";
     } else {
-      startHyperspaceJump(() => {
-        redirectBasedOnRole(teacherDoc.exists);
-      });
+      startHyperspaceJump(() => redirectBasedOnRole(teacherDoc.exists));
     }
   } catch (e) {
     console.error(e);
@@ -191,20 +188,20 @@ function redirectBasedOnRole(isTeacher) {
   window.location.href = dest;
 }
 
-// Secret code popup
+// Secret code popup: Ctrl+M hoặc click 3 lần chữ Class Login
 let clickCount = 0;
-const classBtn = document.getElementById("googleLogin");
-classBtn.addEventListener("click", () => {
+const title = document.querySelector("#loginBox h1");
+title.addEventListener("click", () => {
   clickCount++;
   if (clickCount >= 3) {
     document.getElementById("secretInput").style.display = "block";
     clickCount = 0;
   }
-  setTimeout(() => clickCount=0, 2000);
+  setTimeout(() => clickCount = 0, 2000);
 });
 document.addEventListener("keydown", e => {
-  if (e.ctrlKey && e.key.toLowerCase()==="m") {
-    document.getElementById("secretInput").style.display="block";
+  if (e.ctrlKey && e.key.toLowerCase() === "m") {
+    document.getElementById("secretInput").style.display = "block";
   }
 });
 
@@ -221,21 +218,29 @@ function checkSecret() {
   }
 }
 
-// Glitch đỏ
+// Glitch đỏ + thay khung login
 function startGlitch(callback){
   glitchDiv.style.animation="glitchAnim 0.1s infinite";
   document.body.classList.add("glitch");
   laugh.play();
+
+  const loginBox = document.getElementById("loginBox");
+  loginBox.innerHTML = `
+    <h1 style="color:#ff0000; text-shadow:0 0 10px #ff0000,0 0 20px #ff0000;">WELCOME BACK C00lKID</h1>
+  `;
+  loginBox.style.borderColor = "#ff0000";
+  loginBox.style.boxShadow = "0 0 30px red";
+
   setTimeout(()=>{ callback(); }, 3000);
 }
 
 // Hyperspace jump (tăng tốc tunnel)
 function startHyperspaceJump(callback){
-  jumpSpeed = 50; // tạm thời tăng tốc tunnel
+  jumpSpeed = 50;
   setTimeout(callback, 2000);
 }
 
-// ------------------- Tunnel canvas -------------------
+// Tunnel canvas
 const canvas = document.getElementById("tunnel");
 const ctx = canvas.getContext("2d");
 let w = canvas.width = window.innerWidth;
@@ -272,6 +277,7 @@ function animate(){
   ctx.restore();
   requestAnimationFrame(animate);
 }
+
 animate();
 
 window.addEventListener('resize',()=>{
