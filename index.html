@@ -1,176 +1,162 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>C00lKID GUI Login</title>
-  <style>
-    body {
-      background-color: #0d0d0d;
-      color: white;
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      margin-top: 100px;
-      overflow: hidden;
-    }
-    input {
-      display: block;
-      margin: 10px auto;
-      padding: 10px;
-      width: 250px;
-      border: 2px solid #ff0000;
-      border-radius: 8px;
-      background: #1a1a1a;
-      color: white;
-    }
-    button {
-      background-color: #ff1a1a;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: 0.2s;
-    }
-    button:hover {
-      background-color: #ff4d4d;
-    }
-    h1 {
-      color: #ff1a1a;
-      font-size: 2em;
-      text-shadow: 0 0 15px #ff0000;
-      cursor: pointer;
-      user-select: none;
-    }
-    .error {
-      color: #ff4d4d;
-      margin-top: 10px;
-    }
-
-    /* Glitch effect */
-    .glitch {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(255,0,0,0.2), #000 80%);
-      animation: glitchEffect 0.2s infinite;
-      pointer-events: none;
-      opacity: 0;
-      z-index: 999;
-    }
-    @keyframes glitchEffect {
-      0% { transform: translate(1px, -1px); }
-      25% { transform: translate(-1px, 1px); }
-      50% { transform: translate(-1px, -1px); }
-      75% { transform: translate(1px, 1px); }
-      100% { transform: translate(0, 0); }
-    }
-
-    /* Welcome Text */
-    .welcome {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 3em;
-      color: #ff1a1a;
-      text-shadow: 0 0 20px #ff0000, 0 0 40px #ff3333;
-      animation: flicker 0.2s infinite alternate;
-      opacity: 0;
-      z-index: 1000;
-    }
-    @keyframes flicker {
-      from { opacity: 0.8; }
-      to { opacity: 0.3; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Login</title>
+<style>
+body, html {
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  font-family:'Poppins', sans-serif;
+  height:100vh;
+  background:black;
+}
+.login-container {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  background: rgba(255,255,255,0.95);
+  padding:40px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  text-align:center;
+  z-index:10;
+  transition: opacity 0.5s ease;
+}
+.login-container h1 { margin-bottom:24px; color:#333; }
+input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
+button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
+button:hover { background:#45a049; }
+#error { color:red; margin-top:10px; }
+#warpCanvas {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:9999;
+  display:none;
+}
+</style>
 </head>
 <body>
-  <h1 id="loginTitle">CLASS LOGIN</h1>
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Mật khẩu">
-  <input id="teacherCode" type="text" placeholder="Nhập mã giáo viên (bỏ trống nếu là HS)">
-  <button id="loginBtn">Đăng nhập</button>
-  <div id="error" class="error"></div>
 
-  <div class="glitch" id="glitch"></div>
-  <div class="welcome" id="welcomeText">Welcome to C00lKID GUI</div>
+<canvas id="warpCanvas"></canvas>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+<div class="login-container" id="loginBox">
+  <h1>Class Login</h1>
+  <input type="email" id="email" placeholder="Email">
+  <button id="loginBtn">Login with Google</button>
+  <div id="error"></div>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-      authDomain: "classweb-11389.firebaseapp.com",
-      projectId: "classweb-11389",
-      storageBucket: "classweb-11389.firebasestorage.app",
-      messagingSenderId: "91367336185",
-      appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-      measurementId: "G-7123YZQKWV"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+// 🔹 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+  authDomain: "classweb-11389.firebaseapp.com",
+  projectId: "classweb-11389",
+  storageBucket: "classweb-11389.firebasestorage.app",
+  messagingSenderId: "91367336185",
+  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+  measurementId: "G-7123YZQKWV"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-    const email = document.getElementById("email");
-    const password = document.getElementById("password");
-    const teacherCode = document.getElementById("teacherCode");
-    const loginBtn = document.getElementById("loginBtn");
-    const errorDiv = document.getElementById("error");
-    const glitch = document.getElementById("glitch");
-    const welcomeText = document.getElementById("welcomeText");
-    const loginTitle = document.getElementById("loginTitle");
+// 🌌 Warp effect (white-blue light tunnel)
+const warpCanvas = document.getElementById("warpCanvas");
+const ctx = warpCanvas.getContext("2d");
 
-    // ===== LOGIN =====
-    loginBtn.addEventListener("click", async () => {
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-        const user = userCredential.user;
-        const isTeacher = teacherCode.value.trim() !== "";
-
-        await setDoc(doc(db, isTeacher ? "teachers" : "students", user.displayName || user.uid), {
-          email: user.email,
-          role: isTeacher ? "teacher" : "student",
-          timestamp: new Date()
-        });
-
-        playIntro();
-      } catch (e) {
-        console.error(e);
-        errorDiv.textContent = "Đăng nhập thất bại!";
-      }
+function warpTransition(targetURL) {
+  warpCanvas.style.display = "block";
+  let w = warpCanvas.width = window.innerWidth;
+  let h = warpCanvas.height = window.innerHeight;
+  let stars = [];
+  for(let i=0;i<1200;i++){
+    stars.push({
+      x:Math.random()*w-w/2,
+      y:Math.random()*h-h/2,
+      z:Math.random()*w,
+      size:Math.random()*2+1,
+      color:`hsl(${180 + Math.random()*60},100%,80%)`
     });
+  }
+  function draw() {
+    ctx.fillStyle="rgba(0,0,0,0.25)";
+    ctx.fillRect(0,0,w,h);
+    for(let i=0;i<stars.length;i++){
+      let s = stars[i];
+      s.z -= 25;
+      if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
+      let k = 800/s.z;
+      let px = s.x*k+w/2;
+      let py = s.y*k+h/2;
+      const size = s.size*k/5;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
+      ctx.stroke();
+      ctx.fillStyle=s.color;
+      ctx.fillRect(px, py, size, size);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+  setTimeout(()=>{ window.location.href=targetURL; },2500);
+}
 
-    // ===== SECRET MODE =====
-    let clickCount = 0;
-    loginTitle.addEventListener("click", () => {
-      clickCount++;
-      if (clickCount === 3) showSecretPrompt();
-      setTimeout(() => (clickCount = 0), 1000);
-    });
+// 🔹 Login
+async function login(){
+  const errorDiv = document.getElementById("error");
+  errorDiv.textContent="";
+  try{
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-    document.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.key.toLowerCase() === "m") showSecretPrompt();
-    });
+    const teacherDoc = await getDoc(doc(db,"teachers",user.displayName));
+    const studentDoc = await getDoc(doc(db,"students",user.displayName));
 
-    function showSecretPrompt() {
-      const code = prompt("Nhập mã truy cập:");
-      if (code === "C00lKID") {
-        playIntro();
-      }
+    let role = "student";
+    if(!teacherDoc.exists() && !studentDoc.exists()){
+      let codeInput = prompt("Hãy nhập mã giáo viên (bỏ trống nếu là học sinh):");
+      if(codeInput && codeInput.trim()==="GV123") role="teacher";
+    } else if(teacherDoc.exists()) {
+      role="teacher";
     }
 
-    function playIntro() {
-      glitch.style.opacity = 1;
-      welcomeText.style.opacity = 1;
-      const laugh = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_6c6b0a4a7d.mp3?filename=evil-laugh-14817.mp3");
-      laugh.play();
-      setTimeout(() => window.location.href = "https://c00lkidgui.onrender.com/", 2500);
+    if(role==="teacher"){
+      await setDoc(doc(db,"teachers",user.displayName), {
+        name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()
+      });
+    } else {
+      await setDoc(doc(db,"students",user.displayName), {
+        name:user.displayName,email:user.email,role:"student",loginAt:new Date()
+      });
     }
-  </script>
+
+    document.getElementById("loginBox").style.opacity="0";
+    warpTransition(role==="teacher" ? "https://teachers-x4og.onrender.com/" : "https://students-6fym.onrender.com/");
+
+  }catch(e){
+    console.error(e);
+    errorDiv.textContent="Đăng nhập thất bại!";
+  }
+}
+
+document.getElementById("loginBtn").addEventListener("click", login);
+</script>
+
 </body>
 </html>
