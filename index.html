@@ -1,63 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Login</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Class Login — C00lKID Gateway</title>
 <style>
-body, html {
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  font-family:'Poppins', sans-serif;
-  height:100vh;
-  background:black;
-}
-.login-container {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  background: rgba(255,255,255,0.95);
-  padding:40px;
-  border-radius:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  text-align:center;
-  z-index:10;
-  transition: opacity 0.5s ease;
-}
-.login-container h1 { margin-bottom:24px; color:#333; cursor:pointer; }
-input { width:100%; padding:12px; margin:12px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
-button { width:100%; padding:12px; border:none; border-radius:10px; background:#4CAF50; color:white; cursor:pointer; font-size:16px; margin-top:10px; }
-button:hover { background:#45a049; }
-#error { color:red; margin-top:10px; }
-#warpCanvas {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  z-index:9999;
-  display:none;
-}
+  :root{
+    --bg-dark: #07070a;
+    --card: rgba(255,255,255,0.96);
+    --accent: #1fb6ff;
+    --red: #b71c1c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#020205,#0a0a10);font-family:Inter,system-ui,Arial;color:#fff;overflow:hidden}
+  /* canvas full */
+  #bgCanvas { position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block; background:#000; }
+
+  /* login card */
+  .login-container {
+    position:relative;
+    z-index:10;
+    width:360px;
+    max-width:90%;
+    margin:60px auto;
+    background:var(--card);
+    color:#111;
+    border-radius:16px;
+    padding:26px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+    text-align:center;
+  }
+  .login-container h1 { margin:0 0 8px; font-size:20px; cursor:pointer; user-select:none; }
+  .login-container p { margin:0 0 16px; color:#444; font-size:14px; }
+  .login-container input[type="email"]{ width:100%; padding:12px 14px; border-radius:10px; border:1px solid #ddd; font-size:15px; margin-bottom:12px; }
+  .login-container button{ width:100%; padding:12px; border-radius:10px; border:0; background:linear-gradient(90deg,#2bb8ff,#1f8cff); color:white; font-weight:600; cursor:pointer; }
+  .login-container button:hover{ filter:brightness(1.03); transform:translateY(-2px); }
+
+  #error { color:#b00020; margin-top:12px; min-height:18px; }
+
+  /* hidden secret input style */
+  #secretModal {
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:50;
+    background: rgba(10,10,10,0.96); color:white; padding:18px; border-radius:12px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.7); display:none; min-width:280px;
+  }
+  #secretModal input{ width:100%; padding:10px; border-radius:8px; border:1px solid #333; background:#0b0b0b; color:#fff; }
+
+  /* small footer */
+  .small{ font-size:12px; color: #8e8e8e; margin-top:10px; }
+
+  @media (max-width:420px){
+    .login-container{ margin:30px 16px }
+  }
 </style>
 </head>
 <body>
 
-<canvas id="warpCanvas"></canvas>
+<canvas id="bgCanvas"></canvas>
 
 <div class="login-container" id="loginBox">
   <h1 id="loginTitle">CLASS LOGIN</h1>
-  <input type="email" id="email" placeholder="Email">
-  <button id="loginBtn">Login with Google</button>
+  <p>Đăng nhập bằng Google để tiếp tục</p>
+  <input type="email" id="email" placeholder="Email (tùy chọn)">
+  <button id="loginBtn">Đăng nhập bằng Google</button>
   <div id="error"></div>
+  <div class="small">Ghi chú: nếu là giáo viên, bạn sẽ được hỏi mã .</div>
+</div>
+
+<!-- modal nhập mã ẩn -->
+<div id="secretModal" aria-hidden="true">
+  <div style="margin-bottom:10px">Nhập mã truy cập:</div>
+  <input id="secretInput" type="password" placeholder="Nhập mã...">
+  <div style="display:flex;gap:8px;margin-top:10px;">
+    <button id="secretOk" style="flex:1;background:#ff4d4d;color:#fff;border-radius:8px;padding:8px;border:0;cursor:pointer">OK</button>
+    <button id="secretCancel" style="flex:1;background:#222;color:#fff;border-radius:8px;padding:8px;border:0;cursor:pointer">Hủy</button>
+  </div>
 </div>
 
 <script type="module">
+// -------------------- Firebase imports --------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
+// -------------------- YOUR FIREBASE CONFIG --------------------
 const firebaseConfig = {
   apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
   authDomain: "classweb-11389.firebaseapp.com",
@@ -67,106 +93,346 @@ const firebaseConfig = {
   appId: "1:91367336185:web:30a78cfe10e459b0605a28",
   measurementId: "G-7123YZQKWV"
 };
+
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-const warpCanvas = document.getElementById("warpCanvas");
-const ctx = warpCanvas.getContext("2d");
+// -------------------- SELECTORS --------------------
+const loginBtn = document.getElementById('loginBtn');
+const errorDiv = document.getElementById('error');
+const loginBox = document.getElementById('loginBox');
+const loginTitle = document.getElementById('loginTitle');
 
-function warpTransition(targetURL) {
-  warpCanvas.style.display = "block";
-  let w = warpCanvas.width = window.innerWidth;
-  let h = warpCanvas.height = window.innerHeight;
-  let stars = [];
-  for(let i=0;i<1200;i++){
-    stars.push({x:Math.random()*w-w/2, y:Math.random()*h-h/2, z:Math.random()*w, size:Math.random()*2+1, color:`hsl(${Math.random()*360},100%,80%)`});
-  }
-  function draw() {
-    ctx.fillStyle="rgba(0,0,0,0.2)";
-    ctx.fillRect(0,0,w,h);
-    for(let s of stars){
-      s.z -= 25;
-      if(s.z<=0){ s.z=w; s.x=Math.random()*w-w/2; s.y=Math.random()*h-h/2; }
-      let k = 800/s.z;
-      let px = s.x*k+w/2;
-      let py = s.y*k+h/2;
-      const size = s.size*k/5;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = size;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - s.x*0.1, py - s.y*0.1);
-      ctx.stroke();
-      ctx.fillStyle=s.color;
-      ctx.fillRect(px, py, size, size);
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-  setTimeout(()=>{ window.location.href=targetURL; },2500);
+const secretModal = document.getElementById('secretModal');
+const secretInput = document.getElementById('secretInput');
+const secretOk = document.getElementById('secretOk');
+const secretCancel = document.getElementById('secretCancel');
+
+// -------------------- HELPERS --------------------
+function sanitizeName(name = '') {
+  return name.trim().replace(/[.#$[\]]/g, '_').slice(0, 150) || 'user';
 }
 
-async function login(){
-  const errorDiv = document.getElementById("error");
-  errorDiv.textContent="";
-  try{
+// Warp-white-blue (normal redirect)
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let cw = canvas.width = window.innerWidth;
+let ch = canvas.height = window.innerHeight;
+
+// particles for normal warp (subtle)
+let normalParticles = [];
+function initNormalParticles(){
+  normalParticles = [];
+  for(let i=0;i<600;i++){
+    normalParticles.push({
+      x: Math.random()*cw,
+      y: Math.random()*ch,
+      z: Math.random()*cw,
+      vx: 0,
+      vy: 0,
+      size: Math.random()*1.8+0.6,
+      color: `rgba(180,220,255,${0.6*Math.random()+0.2})`
+    });
+  }
+}
+initNormalParticles();
+
+function drawNormalWarpFrame(speed=20){
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0,0,cw,ch);
+  for(let p of normalParticles){
+    p.z -= speed;
+    if(p.z <= 0){
+      p.z = cw;
+      p.x = Math.random()*cw;
+      p.y = Math.random()*ch;
+    }
+    const k = 600 / p.z;
+    const px = (p.x - cw/2)*k + cw/2;
+    const py = (p.y - ch/2)*k + ch/2;
+    const s = p.size * k;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(px, py, s, s);
+  }
+}
+
+// red particles for secret warp
+let redParticles = [];
+function initRedParticles(){
+  redParticles = [];
+  for(let i=0;i<700;i++){
+    redParticles.push({
+      x: Math.random()*cw,
+      y: Math.random()*ch,
+      vx: (Math.random()-0.5)*18,
+      vy: (Math.random()-0.5)*18,
+      size: Math.random()*2+0.8,
+      alpha: Math.random()*0.8+0.2
+    });
+  }
+}
+initRedParticles();
+
+// animation handles
+let animHandle = null;
+function startNormalWarpAnim(speed = 20){
+  cancelAnimationFrame(animHandle);
+  function step(){
+    drawNormalWarpFrame(speed);
+    animHandle = requestAnimationFrame(step);
+  }
+  step();
+}
+
+function startRedWarpAnim(){
+  cancelAnimationFrame(animHandle);
+  function step(){
+    ctx.fillStyle = 'rgba(80,0,0,0.25)';
+    ctx.fillRect(0,0,cw,ch);
+    for(let p of redParticles){
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.01;
+      if(p.alpha <= 0 || p.x < -50 || p.x > cw+50 || p.y < -50 || p.y > ch+50){
+        p.x = Math.random()*cw;
+        p.y = Math.random()*ch;
+        p.vx = (Math.random()-0.5)*18;
+        p.vy = (Math.random()-0.5)*18;
+        p.alpha = Math.random()*0.8+0.2;
+      }
+      ctx.fillStyle = `rgba(255,30,30,${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    animHandle = requestAnimationFrame(step);
+  }
+  step();
+}
+
+// responsive canvas
+window.addEventListener('resize', ()=>{
+  cw = canvas.width = window.innerWidth;
+  ch = canvas.height = window.innerHeight;
+  initNormalParticles();
+  initRedParticles();
+});
+
+// -------------------- AUDIO: preloaded laugh with echo via WebAudio --------------------
+const laughUrl = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_ef85f54022.mp3?filename=evil-laugh-2-103818.mp3";
+let audioCtx = null;
+let laughBuffer = null;
+
+// fetch and decode once
+async function loadLaugh() {
+  try {
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const resp = await fetch(laughUrl);
+    const arr = await resp.arrayBuffer();
+    laughBuffer = await audioCtx.decodeAudioData(arr);
+  } catch(e){
+    console.warn("Không thể load audio laugh:", e);
+    laughBuffer = null;
+  }
+}
+loadLaugh();
+
+// play laugh with echo (feedback delay)
+function playLaughWithEcho(volume=0.5) {
+  if(!laughBuffer || !audioCtx) {
+    // fallback: use HTMLAudio
+    const a = new Audio(laughUrl);
+    a.volume = volume;
+    a.play();
+    return;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = laughBuffer;
+  const gain = audioCtx.createGain();
+  gain.gain.value = volume;
+
+  const delay = audioCtx.createDelay();
+  delay.delayTime.value = 0.28;
+
+  const feedback = audioCtx.createGain();
+  feedback.gain.value = 0.45;
+
+  // chain: src -> gain -> dest, and also -> delay -> feedback -> delay (feedback loop) -> dest
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  // echo path
+  gain.connect(delay);
+  delay.connect(feedback);
+  feedback.connect(delay);
+
+  // also send delayed signal to destination
+  delay.connect(audioCtx.destination);
+
+  src.start();
+}
+
+// -------------------- REDIRECT HELPERS --------------------
+function redirectWithNormalWarp(url){
+  // fade out login box then run normal warp for 1.8s then redirect
+  loginBox.style.transition = 'opacity 300ms';
+  loginBox.style.opacity = '0';
+  // start normal warp
+  startNormalWarpAnim(28);
+  setTimeout(()=> { window.location.href = url; }, 1800);
+}
+
+function redirectWithRedWarp(url){
+  loginBox.style.transition = 'opacity 300ms';
+  loginBox.style.opacity = '0';
+  // play laugh echo
+  playLaughWithEcho(0.35);
+  // start red warp
+  startRedWarpAnim();
+  setTimeout(()=> { window.location.href = url; }, 2200);
+}
+
+// -------------------- FIREBASE LOGIN FLOW --------------------
+async function loginFlow(){
+  errorDiv.textContent = '';
+  try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    if(!user) throw new Error('No user');
 
-    const teacherDoc = await getDoc(doc(db,"teachers",user.uid));
-    const studentDoc = await getDoc(doc(db,"students",user.uid));
+    // get docs by uid
+    const teacherRef = doc(db, "teachers", user.uid);
+    const studentRef = doc(db, "students", user.uid);
 
-    let role = "student";
+    const teacherSnap = await getDoc(teacherRef);
+    const studentSnap = await getDoc(studentRef);
 
-    if(!teacherDoc.exists() && !studentDoc.exists()){
-      let codeInput = prompt("Hãy nhập mã giáo viên, bỏ trống nếu là học sinh:");
-      if(codeInput==="GV123"){
-        role="teacher";
+    let role = 'student';
+
+    // if first time (no teacher & no student), ask code for teacher
+    if(!teacherSnap.exists() && !studentSnap.exists()){
+      const code = prompt("Hãy nhập mã giáo viên, bỏ trống nếu là học sinh:");
+      if(code && code.trim() === "GV123"){
+        role = 'teacher';
       }
-    } else if(teacherDoc.exists()){
-      role="teacher";
+    } else if(teacherSnap.exists()){
+      role = 'teacher';
     }
 
-    if(!teacherDoc.exists() && role==="teacher"){
-      await setDoc(doc(db,"teachers",user.displayName), {name:user.displayName,email:user.email,role:"teacher",loginAt:new Date()});
-    } else if(!studentDoc.exists()){
-      await setDoc(doc(db,"students",user.displayName), {name:user.displayName,email:user.email,role:"student",loginAt:new Date()});
+    // create the doc if missing (use uid as id)
+    if(role === 'teacher' && !teacherSnap.exists()){
+      await setDoc(teacherRef, {
+        name: sanitizeName(user.displayName || 'Teacher'),
+        email: user.email || '',
+        role: 'teacher',
+        loginAt: new Date()
+      });
+    } else if(role === 'student' && !studentSnap.exists()){
+      await setDoc(studentRef, {
+        name: sanitizeName(user.displayName || 'Student'),
+        email: user.email || '',
+        role: 'student',
+        loginAt: new Date()
+      });
     }
 
-    document.getElementById("loginBox").style.opacity="0";
-    warpTransition(role==="teacher"?"https://teachers-x4og.onrender.com/":"https://students-6fym.onrender.com/");
+    // redirect — both teacher and student use normal warp (white-blue)
+    const target = (role === 'teacher') ? "https://teachers-x4og.onrender.com/" : "https://students-6fym.onrender.com/";
+    redirectWithNormalWarp(target);
 
-  }catch(e){ console.error(e); errorDiv.textContent="Đăng nhập thất bại!"; }
+  } catch (e) {
+    console.error("Login failed:", e);
+    errorDiv.textContent = "Đăng nhập thất bại!";
+  }
 }
 
-document.getElementById("loginBtn").addEventListener("click", login);
+loginBtn.addEventListener('click', loginFlow);
 
-// ---- Hidden access system ----
-let secretClickCount = 0;
-const loginTitle = document.getElementById("loginTitle");
+// -------------------- SECRET ACCESS (Ctrl+M or 3x click on title) --------------------
+let clickCount = 0;
+let clickTimer = null;
 
-loginTitle.addEventListener("click", () => {
-  secretClickCount++;
-  if (secretClickCount >= 3) {
-    secretClickCount = 0;
-    const code = prompt("");
-    if (code === "C00lKID") {
-      warpTransition("https://c00lkidgui.onrender.com/");
-    }
+loginTitle.addEventListener('click', () => {
+  clickCount++;
+  if(clickTimer) clearTimeout(clickTimer);
+  clickTimer = setTimeout(()=> { clickCount = 0; }, 900);
+  if(clickCount >= 3) {
+    clickCount = 0;
+    openSecretModal();
   }
 });
 
-document.addEventListener("keydown", (e)=>{
-  if(e.ctrlKey && e.key.toLowerCase()==='m'){
-    const code = prompt("");
-    if(code==="C00lKID"){
-      warpTransition("https://c00lkidgui.onrender.com/");
-    }
+// keydown Ctrl+M (accept M or m)
+document.addEventListener('keydown', (e) => {
+  if(e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
+    e.preventDefault();
+    openSecretModal();
   }
 });
+
+function openSecretModal(){
+  secretModal.style.display = 'block';
+  secretModal.setAttribute('aria-hidden','false');
+  secretInput.value = '';
+  setTimeout(()=> secretInput.focus(), 50);
+}
+
+secretCancel.addEventListener('click', ()=> {
+  secretModal.style.display = 'none';
+  secretModal.setAttribute('aria-hidden','true');
+});
+
+secretOk.addEventListener('click', ()=> {
+  const code = secretInput.value.trim();
+  secretModal.style.display = 'none';
+  secretModal.setAttribute('aria-hidden','true');
+  if(code === 'C00lKID') {
+    // secret redirect with red warp + laugh
+    redirectWithRedWarp("https://c00lkidgui.onrender.com/");
+  } else {
+    // subtle feedback
+    errorDiv.textContent = "Mã sai.";
+    setTimeout(()=> errorDiv.textContent = '', 2000);
+  }
+});
+
+// allow Enter key in modal
+secretInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') secretOk.click();
+  if(e.key === 'Escape') secretCancel.click();
+});
+
+// hide modal when clicking outside
+window.addEventListener('click', (ev) => {
+  if(ev.target === secretModal) {
+    secretModal.style.display = 'none';
+    secretModal.setAttribute('aria-hidden','true');
+  }
+});
+
+// -------------------- INITIALIZE background static stars --------------------
+(function initBackground(){
+  // start an initial subtle animation so page doesn't look dead
+  cancelAnimationFrame(animHandle);
+  function subtleLoop(){
+    // draw a mild starfield slowly (no motion)
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0,0,cw,ch);
+    for(let i=0;i<120;i++){
+      ctx.fillStyle = `rgba(200,220,255,${Math.random()*0.6})`;
+      const x = Math.random()*cw;
+      const y = Math.random()*ch;
+      ctx.fillRect(x,y, Math.random()*2, Math.random()*2);
+    }
+    // run normal warp in paused-like small motion
+    drawNormalWarpFrame(3);
+    animHandle = requestAnimationFrame(subtleLoop);
+  }
+  subtleLoop();
+})();
+
 </script>
-
 </body>
 </html>
